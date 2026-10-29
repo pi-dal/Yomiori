@@ -50,6 +50,11 @@
 - 内部群组 `Internal Testers`（`6cd8a33b-ba49-4c0c-8b5e-c5b44d041344`）已包含该构建，允许访问所有构建。关系读取完整。
 - Account Holder 已作为内部测试者加入，状态 `INVITED`；Apple 已自动发出邀请。
 - `en-US` 和 `zh-Hans` 的 Beta 应用说明及 What to Test 均已写入并回读确认。
-- 外部状态 `READY_FOR_BETA_SUBMISSION`：尚未提交外部 Beta App Review，也没有公开测试链接。
+- 按用户要求对齐 Sakamoto 的测试人员配置，已创建外部邮件组 `Yomiori Email Testers`（`bd75a1a1-ac32-40a9-97ba-1c45cae1a6dd`），加入 Sakamoto 邮件组的同一位测试者，并分配本构建。公开链接关闭，反馈开启；个人邮箱不写入仓库。
+- 外部 Beta App Review 已于 2026-10-29 12:18:35 UTC 提交，submission ID `8ae00f94-c775-407e-9d78-cc1d6b21d868`。回读 `betaReviewState = WAITING_FOR_REVIEW`、`externalBuildState = WAITING_FOR_BETA_REVIEW`；内部仍为 `IN_BETA_TESTING`。
+- 审核联系人沿用 Sakamoto 的既有资料并回读核对；中英文反馈邮箱已补齐，审核备注说明本地功能无需登录、AI 服务由测试者自行配置。
+- 邮件组测试者 ID `ffd93afb-16aa-4d3d-83bb-0725cc94a59c`，状态 `NOT_INVITED`；需要先通过 Apple 外部 Beta 审核，再执行已授权的邀请并核对状态。未创建定时监控。
+
+本机会话仍绑定改名前的工作目录，已保留 `Developer/Kotoba → Developer/Yomiori` 兼容符号链接；实际项目目录和 GitHub 仓库均为 Yomiori。
 
 测试说明涵盖阅读/PDF、词表导入和复习；Coach Markdown 与流式；阅读器点词、选区及振假名；导出 CSV/音频 ZIP，取消分享不标记、完成分享后标记。AI 功能需测试者自行配置 HTTPS Responses/Chat Completions 服务、模型及 API key。
