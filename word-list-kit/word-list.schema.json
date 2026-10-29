@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "File byte limit, uniqueness of entries[].id and importer-reserved ielts require the companion validator. x-* annotations are not standard JSON Schema assertions. The schema also validates the shipped builtin document.",
+  "type": "object",
+  "properties": {
+    "format": {
+      "const": "kotoba.wordlist"
+    },
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "\\S"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "en",
+        "ja"
+      ]
+    },
+    "translationLanguage": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 10000,
+      "pattern": "^[a-zA-Z]{2,8}(-[a-zA-Z0-9]{1,8})*$(?![\\s\\S])"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entry"
+      },
+      "maxItems": 20000,
+      "x-uniqueBy": "id",
+      "minItems": 1
+    }
+  },
+  "required": [
+    "format",
+    "version",
+    "id",
+    "title",
+    "language",
+    "translationLanguage",
+    "source",
+    "entries"
+  ],
+  "additionalProperties": false,
+  "x-maxFileBytes": 20971520,
+  "$defs": {
+    "text": {
+      "type": "string",
+      "maxLength": 10000
+    },
+    "nonempty": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 10000
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,79}$(?![\\s\\S])"
+    },
+    "httpsURL": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 10000,
+      "pattern": "^https://(?:[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?|\\[[0-9A-Fa-f:]+\\])(?::[0-9]{1,5})?(?:[/?#][^\\s\\\\\\x00-\\x20\\x7f]*)?$(?![\\s\\S])"
+    },
+    "sense": {
+      "type": "object",
+      "properties": {
+        "partOfSpeech": {
+          "$ref": "#/$defs/text"
+        },
+        "definition": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "translation": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "required": [
+        "partOfSpeech",
+        "definition",
+        "translation"
+      ],
+      "additionalProperties": false
+    },
+    "example": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "translation": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "required": [
+        "text",
+        "translation"
+      ],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000,
+          "pattern": "\\S"
+        },
+        "url": {
+          "$ref": "#/$defs/httpsURL"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000,
+          "pattern": "\\S"
+        },
+        "licenseURL": {
+          "$ref": "#/$defs/httpsURL"
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000,
+          "pattern": "\\S"
+        },
+        "modified": {
+          "type": "boolean"
+        },
+        "contentType": {
+          "type": "string",
+          "enum": [
+            "ai-generated",
+            "dictionary",
+            "user-authored"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "url",
+        "license",
+        "licenseURL",
+        "attribution",
+        "modified",
+        "contentType"
+      ],
+      "additionalProperties": false
+    },
+    "pronunciations": {
+      "type": "object",
+      "properties": {
+        "uk": {
+          "$ref": "#/$defs/text"
+        },
+        "us": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "media": {
+      "type": "object",
+      "properties": {
+        "pronunciationURL": {
+          "$ref": "#/$defs/httpsURL"
+        },
+        "exampleAudioURL": {
+          "$ref": "#/$defs/httpsURL"
+        },
+        "imageURL": {
+          "$ref": "#/$defs/httpsURL"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "entry": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "term": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "senses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sense"
+          },
+          "minItems": 1
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/example"
+          }
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "",
+            "A1",
+            "A2",
+            "B1",
+            "B2",
+            "C1",
+            "C2"
+          ]
+        },
+        "topic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "pronunciations": {
+          "$ref": "#/$defs/pronunciations"
+        },
+        "collocations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "family": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "synonyms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "antonyms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "tip": {
+          "$ref": "#/$defs/text"
+        },
+        "note": {
+          "$ref": "#/$defs/text"
+        },
+        "media": {
+          "$ref": "#/$defs/media"
+        }
+      },
+      "required": [
+        "id",
+        "term",
+        "senses",
+        "examples",
+        "level",
+        "topic"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "x-reservedImportIDs": [
+    "ielts"
+  ]
+}
