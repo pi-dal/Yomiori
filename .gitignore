@@ -3,7 +3,6 @@ build/
 DerivedData/
 *.xcuserstate
 xcuserdata/
-.airbuild/
 .env
 .env.*
 !.env.example

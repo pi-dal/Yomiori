@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Kotoba v1 JSON with Python's standard library (no network or pip)."""
+"""Validate Yomiori v1 JSON with Python's standard library (no network or pip)."""
 import argparse
 import json
 import math

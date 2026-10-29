@@ -1,8 +1,10 @@
-# Kotoba 词表文件格式（v1）
+# Yomiori 词表文件格式（v1）
 
-本工具包依据项目 `.airbuild/wordlist-contract.md` 制作；契约是实现目标，不代表导入界面或所有行为已经上线。工具仅检查文件，不读写应用数据。文件应保存为 UTF-8、扩展名 `.json`，不要交付 Markdown 代码块、JavaScript 或压缩包作为词表。
+本工具包以同目录的 `word-list.schema.json` 描述文件格式，应用中的校验与合并逻辑位于 `Yomiori/WordListDocument.swift`。工具仅检查文件，不读写应用数据。文件应保存为 UTF-8、扩展名 `.json`，不要交付 Markdown 代码块、JavaScript 或压缩包作为词表。
 
 参考：[Schema](word-list.schema.json)、[完整三词示例](examples/study-starter.json)、[代理技能](SKILL.md)。示例是英语 → 简体中文，包含 motivate / motivates 的词形变化；没有引用词典、没有媒体，CEFR 级别也是 AI 建议。
+
+应用已更名为 Yomiori；`kotoba.wordlist` 是沿用的 v1 文件格式标识，不是应用名称。保留它可继续导入改名前生成的词表。
 
 ## 外层结构
 
@@ -85,7 +87,7 @@ PY
 Schema 也用于校验随应用发布的内置词表，因此允许其文档 ID 为 `ielts`；默认 CLI 会额外拒绝此保留 ID，避免生成不可导入文件。仅审计应用自带文件时使用：
 
 ```sh
-python3 word-list-kit/validate.py --allow-builtin Kotoba/word-atlas.json
+python3 word-list-kit/validate.py --allow-builtin Yomiori/word-atlas.json
 ```
 
 `--allow-builtin` 只放宽内置 ID 检查，不放宽其他约束，也不代表允许导入或覆盖内置词表。生成供用户导入的文件必须使用默认校验命令，不能用此选项绕过保留 ID。
