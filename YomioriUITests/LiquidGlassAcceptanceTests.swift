@@ -9,6 +9,33 @@ import XCTest
         add(attachment)
     }
 
+    func testRepeatedReaderPDFAndSettingsNavigation() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--library-design-preview", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["A quiet morning in Kyoto"].waitForExistence(timeout: 10))
+        for _ in 0..<4 {
+            app.tabBars.buttons["Read"].tap()
+            app.buttons["reading-featured"].tap()
+            XCTAssertTrue(app.buttons["Next line"].waitForExistence(timeout: 5))
+            if app.buttons["Next line"].isEnabled { app.buttons["Next line"].tap() }
+            app.navigationBars.buttons.firstMatch.tap()
+            app.buttons["Settings"].tap()
+            XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+            app.buttons["Done"].tap()
+            app.tabBars.buttons["Documents"].tap()
+            app.staticTexts["Language in context"].tap()
+            XCTAssertTrue(app.buttons["Next page"].waitForExistence(timeout: 5))
+            if app.buttons["Next page"].isEnabled { app.buttons["Next page"].tap() }
+            else { app.buttons["Previous page"].tap() }
+            app.navigationBars.buttons.firstMatch.tap()
+            app.tabBars.buttons["Dictionary"].tap()
+            XCTAssertTrue(app.staticTexts["木漏れ日"].waitForExistence(timeout: 5))
+            app.tabBars.buttons["Coach"].tap()
+            XCTAssertTrue(app.textFields["Message Coach"].waitForExistence(timeout: 5))
+        }
+    }
+
     func testTranslationRevealAndResetOnNextLine() {
         let app = XCUIApplication()
         app.launchArguments = ["--library-design-preview", "--preview-translation", "veiled",

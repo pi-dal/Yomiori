@@ -142,6 +142,81 @@ import ZIPFoundation
         #expect(material.contentError != nil)
         #expect(material.linesData == corrupt)
     }
+    @Test func subtitleImportRejectsNonfiniteOverflowAndReversedTimes() {
+        for (start, end) in [("NaN", "2"), ("0", "Infinity"), ("1e308", "1e308"), ("-1", "2"), ("5", "2")] {
+            #expect(Subtitles.parse("1\n\(start) --> \(end)\ninvalid\n").isEmpty)
+        }
+        #expect(Subtitles.parse("1\n00:00:01,500 --> 00:00:02,000\nvalid\n").first?.start == 1.5)
+    }
+    @Test func invalidSavedTimelinesAndDuplicateIDsArePreservedWithoutRendering() throws {
+        let material = Material(title: "invalid")
+        let id = UUID()
+        let line = SubLine(id: id, start: 0, end: 1, text: "duplicate")
+        for lines in [[line, line], [SubLine(start: 1e100, end: 1e100, text: "huge")], [SubLine(start: 5, end: 1, text: "reversed")]] {
+            let data = try JSONEncoder().encode(lines)
+            material.linesData = data
+            #expect(throws: (any Error).self) { try material.readLines() }
+            #expect(material.lines.isEmpty && material.contentError != nil)
+            #expect(material.linesData == data)
+            #expect(throws: (any Error).self) { try material.writeLines(lines) }
+            #expect(material.linesData == data)
+        }
+    }
+    @Test func subtitleFormattingHandlesInvalidStoredTimes() {
+        for time in [Double.nan, .infinity, -.infinity, .greatestFiniteMagnitude, -1] {
+            #expect(Subtitles.stamp(time) == "0:00")
+            #expect(Subtitles.srt([SubLine(start: time, end: time, text: "saved")]).contains("00:00:00,000 --> 00:00:00,000"))
+        }
+    }
+    @Test func immersionRejectsOverflowInputAndFormatsInvalidHistory() {
+        for input in ["nan", "inf", "1e308", "-1", "0", "999999999999999999999999"] {
+            #expect(Immersion.manualSeconds(input) == nil)
+        }
+        #expect(Immersion.manualSeconds("30") == 1800)
+        for time in [Double.nan, .infinity, .greatestFiniteMagnitude, -1] {
+            #expect(Immersion.format(time) == Immersion.format(0))
+        }
+    }
+    @Test func repeatedReviewsAndInvalidStoredIntervalsStaySchedulable() {
+        let card = Card(sentence: "hello", word: "hello")
+        for _ in 0..<100 {
+            Scheduler.apply(card, .easy)
+            #expect(card.interval.isFinite && card.interval <= 36_500)
+            #expect(!Scheduler.hint(card.interval).isEmpty)
+        }
+        for invalid in [Double.nan, .infinity, .greatestFiniteMagnitude, -1] {
+            card.interval = invalid; card.ease = invalid
+            for rating in Rating.allCases {
+                #expect(Scheduler.next(card, rating).isFinite)
+                #expect(!Scheduler.hint(invalid).isEmpty)
+                Scheduler.apply(card, rating)
+                #expect(card.due.timeIntervalSince1970.isFinite)
+            }
+        }
+        #expect(ReviewView.due([card], limit: -1).isEmpty)
+    }
+    @Test func reloadingPlayerReleasesOldPlayerAndResetsPlaybackState() async throws {
+        let model = PlayerModel()
+        let url = URL.temporaryDirectory.appending(path: "missing-playback-fixture.wav")
+        model.load(url)
+        weak var oldPlayer = model.player
+        model.duration = 60; model.time = 20; model.playing = true
+        model.load(url)
+        // AVFoundation releases item loading work asynchronously.
+        for _ in 0..<100 {
+            if oldPlayer == nil { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(oldPlayer == nil)
+        #expect(model.duration == 0 && model.time == 0 && !model.playing)
+        weak var current = model.player
+        model.stop(); model.stop()
+        for _ in 0..<100 {
+            if current == nil { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(current == nil && model.player == nil)
+    }
     @Test func exporterBuildsExistingFilesAndFailsWithoutMarkingCards() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

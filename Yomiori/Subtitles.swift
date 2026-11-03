@@ -1,6 +1,12 @@
 import Foundation
 
 enum Subtitles {
+    // A bounded timeline also keeps millisecond conversion and CMTime representable.
+    static let maximumTime: Double = 315_360_000 // Ten years.
+    static func safeTime(_ value: Double) -> Double {
+        value.isFinite && value >= 0 && value <= maximumTime ? value : 0
+    }
+
     static func parse(_ raw: String) -> [SubLine] {
         let text = raw.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\u{FEFF}", with: "")
         var out: [SubLine] = []
@@ -8,7 +14,7 @@ enum Subtitles {
             let rows = block.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
             guard let ti = rows.firstIndex(where: { $0.contains("-->") }) else { continue }
             let parts = rows[ti].components(separatedBy: "-->")
-            guard parts.count == 2, let s = time(parts[0]), let e = time(parts[1]) else { continue }
+            guard parts.count == 2, let s = time(parts[0]), let e = time(parts[1]), e >= s else { continue }
             let body = rows[(ti + 1)...].joined(separator: " ")
                 .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
                 .trimmingCharacters(in: .whitespaces)
@@ -23,19 +29,20 @@ enum Subtitles {
         guard !comps.isEmpty, comps.count <= 3 else { return nil }
         var total = 0.0
         for c in comps { guard let v = Double(c) else { return nil }; total = total * 60 + v }
+        guard total.isFinite, total >= 0, total <= maximumTime else { return nil }
         return total
     }
 
     static func srt(_ lines: [SubLine]) -> String {
         func f(_ t: Double) -> String {
-            let ms = Int((t * 1000).rounded())
-            return String(format: "%02d:%02d:%02d,%03d", ms / 3_600_000, ms / 60_000 % 60, ms / 1000 % 60, ms % 1000)
+            let ms = Int64((safeTime(t) * 1000).rounded())
+            return String(format: "%02lld:%02lld:%02lld,%03lld", ms / 3_600_000, ms / 60_000 % 60, ms / 1000 % 60, ms % 1000)
         }
         return lines.enumerated().map { i, l in "\(i + 1)\n\(f(l.start)) --> \(f(l.end))\n\(l.text)\n" }.joined(separator: "\n")
     }
 
     static func stamp(_ t: Double) -> String {
-        let s = Int(t); return String(format: "%d:%02d", s / 60, s % 60)
+        let s = Int64(safeTime(t)); return String(format: "%lld:%02lld", s / 60, s % 60)
     }
 
     /// Index of the line playing at `t` (the last line that started).

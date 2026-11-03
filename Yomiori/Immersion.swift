@@ -11,13 +11,19 @@ import Charts
 }
 
 enum Immersion {
+    static func manualSeconds(_ minutes: String) -> Double? {
+        guard let value = Double(minutes), value.isFinite, value > 0,
+              value <= Subtitles.maximumTime / 60 else { return nil }
+        return value * 60
+    }
     @MainActor static func add(_ ctx: ModelContext, seconds: Double, kind: String) {
+        guard seconds.isFinite, seconds > 0, seconds <= Subtitles.maximumTime else { return }
         let day = Calendar.current.startOfDay(for: Date())
         let logs = (try? ctx.fetch(FetchDescriptor<ImmersionLog>(predicate: #Predicate { $0.day == day && $0.kind == kind }))) ?? []
         if let l = logs.first(where: { $0.note.isEmpty }) { l.seconds += seconds } else { ctx.insert(ImmersionLog(day: day, seconds: seconds, kind: kind)) }
     }
     static func format(_ s: Double) -> String {
-        let m = Int(s / 60)
+        let m = Int(Subtitles.safeTime(s) / 60)
         return m >= 60 ? L10n.format("%lld hr %lld min", Int64(m / 60), Int64(m % 60)) : L10n.format("review.nextMinutes", Int64(m))
     }
 }
@@ -32,7 +38,7 @@ struct ImmersionView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var cal: Calendar { .current }
-    private func total(_ ls: [ImmersionLog]) -> Double { ls.reduce(0) { $0 + $1.seconds } }
+    private func total(_ ls: [ImmersionLog]) -> Double { ls.reduce(0) { min(Subtitles.maximumTime, $0 + Subtitles.safeTime($1.seconds)) } }
     private var today: Double { total(logs.filter { cal.isDateInToday($0.day) }) }
     private var days: [(day: Date, secs: Double)] {
         (0..<7).reversed().map { off in
@@ -145,9 +151,9 @@ struct AddTimeSheet: View {
                 ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Add time") {
-                        if let m = Double(minutes), m > 0 { let l = ImmersionLog(day: Calendar.current.startOfDay(for: Date()), seconds: m * 60, kind: "manual"); l.note = what; ctx.insert(l) }
+                        if let seconds = Immersion.manualSeconds(minutes) { let l = ImmersionLog(day: Calendar.current.startOfDay(for: Date()), seconds: seconds, kind: "manual"); l.note = what; ctx.insert(l) }
                         dismiss()
-                    }.disabled((Double(minutes) ?? 0) <= 0)
+                    }.disabled(Immersion.manualSeconds(minutes) == nil)
                 }
             }
         }

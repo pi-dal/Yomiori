@@ -49,9 +49,20 @@ struct SubLine: Codable, Identifiable, Hashable, Sendable {
         }
     }
     func readLines() throws -> [SubLine] {
-        linesData.isEmpty ? [] : try JSONDecoder().decode([SubLine].self, from: linesData)
+        let lines = linesData.isEmpty ? [] : try JSONDecoder().decode([SubLine].self, from: linesData)
+        try Self.validate(lines)
+        return lines
+    }
+    private static func validate(_ lines: [SubLine]) throws {
+        var ids = Set<UUID>()
+        for line in lines {
+            guard line.start.isFinite, line.end.isFinite,
+                  line.start >= 0, line.end >= line.start, line.end <= Subtitles.maximumTime,
+                  ids.insert(line.id).inserted else { throw CocoaError(.fileReadCorruptFile) }
+        }
     }
     func writeLines(_ lines: [SubLine]) throws {
+        try Self.validate(lines)
         let encoded = try JSONEncoder().encode(lines)
         linesData = encoded
         decodedData = encoded

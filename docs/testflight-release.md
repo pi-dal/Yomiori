@@ -2,7 +2,21 @@
 
 2026-10-29：用户已授权全局改名并发布 TestFlight，发布操作使用 `asc`。
 
-## 最新发布：1.0 (4)，和纸墨色与双语阅读
+## 最新发布：1.0 (5)，稳定性修复与查词／实时语音
+
+2026-11-03：用户授权「发个版」。使用 `asc-release-flow` 发布至现有 TestFlight 测试组。
+
+- 版本 **1.0 (5)**，签名归档及 IPA 导出成功，严格签名校验通过；麦克风／语音识别权限说明和两个隐私清单齐全。
+- 修复异常字幕时间导致整数转换崩溃、重复字幕 ID、播放器重复载入的观察者泄漏、PDF 同步回写 SwiftUI 状态、复习间隔越界及学习时长输入；不重置词库或数据库。
+- 同时包含 `cb9413e` 的快速查词／收藏与实验性实时语音 Coach。实时语音仍缺真机及有效 Qwen Key 的端到端验收，中英文测试说明和审核备注均披露该限制。
+- 发布前最终 **66 项自动化测试通过、1 项真机音频测试跳过**；8 项不同 UI 回归通过，PDF 生命周期修复后专项复测全部通过。见[崩溃排查验收](acceptance/crash-triage.md)。
+- 产物、签名清单、上传与 Apple 状态回读：`/tmp/yomiori-testflight-5/`。
+- IPA SHA-256：`2e19d4b124341a0710962650534a920c4833951ccd79c260adbbe3c88eb27eba`。
+- Build／Upload／Beta Review ID：`d4e2c648-2b3f-4c25-b318-8e4f78a2458d`。Apple 回读：`processingState=VALID`、`betaReviewState=APPROVED`、内部和外部均为 `IN_BETA_TESTING`、`autoNotifyEnabled=true`、`usesNonExemptEncryption=false`。
+- 现有 `Internal Testers` 和 `Yomiori Email Testers` 两组成员关系完整确认；中英文 What to Test 已写入并回读，TestFlight 严格校验零错误／零警告。未创建新测试组或公开链接，未提交正式 App Store 版本。
+- 临时签名钥匙串已删除并恢复原搜索列表。监控：`asc builds build-beta-detail view --build-id d4e2c648-2b3f-4c25-b318-8e4f78a2458d --output table`。
+
+## 历史发布：1.0 (4)，和纸墨色与双语阅读
 
 2026-11-03：用户授权「再发个版，我更新了一些，顺便 commit and push」。使用 `asc-release-flow` 上传、分发和提交 Beta 审核，使用 `asc-submission-health` 回读状态。
 

@@ -70,6 +70,26 @@ import Testing
         #expect(session.error == nil && session.text == "阅读")
     }
 
+    @Test func pdfNotificationsDeferStateWritesAndIgnoreDismantledViews() async throws {
+        let pdf = try #require(PDFDocument(data: PDFReadingFixture.data()))
+        let view = PDFView(frame: CGRect(x: 0, y: 0, width: 390, height: 700))
+        view.document = pdf
+        let coordinator = PDFCoordinator()
+        var updates = 0, page = 0
+        let parent = PDFReader(pdf: pdf, page: .init(get: { page }, set: { page = $0 }), coordinator: coordinator) { _ in updates += 1 }
+        let observer = PDFReader.Observer(parent)
+        observer.observe(view)
+        observer.selectionChanged()
+        #expect(updates == 0)
+        for _ in 0..<20 { await Task.yield() }
+        #expect(updates > 0)
+        let count = updates
+        observer.selectionChanged()
+        observer.stop()
+        for _ in 0..<20 { await Task.yield() }
+        #expect(updates == count)
+    }
+
     @Test func annotationUsesRetainedSelectionAfterSystemPresentation() throws {
         let pdf = try #require(PDFDocument(data: PDFReadingFixture.data()))
         let page = try #require(pdf.page(at: 0))

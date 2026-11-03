@@ -103,8 +103,9 @@ struct WordSheet: View {
     }
     @State private var clipURLPreview: URL?
     private func prepareClip() async {
-        guard let f = target.mediaFile, canMine else { return }
-        let dest = FileManager.default.temporaryDirectory.appending(path: "clip-preview-\(target.materialID.prefix(6))-\(Int(target.time * 10)).m4a")
+        guard let f = target.mediaFile, canMine, target.time.isFinite, target.end.isFinite,
+              target.time >= 0, target.end >= target.time, target.end <= Subtitles.maximumTime else { return }
+        let dest = FileManager.default.temporaryDirectory.appending(path: "clip-preview-\(UUID().uuidString).m4a")
         if await Clip.export(media: Files.url(f), start: target.time, end: target.end, to: dest) { clipURLPreview = dest }
     }
     private func load() {

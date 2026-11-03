@@ -4,6 +4,8 @@ import AVFoundation
 enum Clip {
     /// Cuts the audio between `start` and `end` seconds out of a media file into an .m4a at `dest`.
     static func export(media: URL, start: Double, end: Double, to dest: URL) async -> Bool {
+        guard start.isFinite, end.isFinite, start >= 0, end >= start,
+              end <= Subtitles.maximumTime else { return false }
         let asset = AVURLAsset(url: media)
         guard let s = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else { return false }
         let a = max(0, start - 0.3), b = end + 0.3

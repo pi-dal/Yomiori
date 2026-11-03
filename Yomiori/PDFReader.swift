@@ -101,6 +101,9 @@ struct PDFReader: UIViewRepresentable {
         private weak var view: PDFView?
         private weak var scrollView: UIScrollView?
         private var scrollObservation: NSKeyValueObservation?
+        private var stopped = false
+        private var selectionPending = false
+        private var pagePending = false
         init(_ parent: PDFReader) { self.parent = parent }
         deinit { NotificationCenter.default.removeObserver(self) }
 
@@ -115,7 +118,7 @@ struct PDFReader: UIViewRepresentable {
             tap.delegate = self
             view.addGestureRecognizer(tap)
             DispatchQueue.main.async { [weak self, weak view] in
-                guard let self, let view else { return }
+                guard let self, let view, !self.stopped else { return }
                 if let scroll = self.findScroll(in: view) {
                     self.scrollView = scroll
                     self.scrollObservation = scroll.observe(\.contentOffset, options: [.new]) { [weak self] _, _ in
@@ -126,6 +129,7 @@ struct PDFReader: UIViewRepresentable {
         }
 
         func stop() {
+            stopped = true
             NotificationCenter.default.removeObserver(self)
             scrollObservation?.invalidate(); scrollObservation = nil
         }
@@ -153,6 +157,18 @@ struct PDFReader: UIViewRepresentable {
         }
 
         @objc func selectionChanged() {
+            guard !stopped, !selectionPending else { return }
+            selectionPending = true
+            // PDFKit can notify synchronously inside updateUIView / go(to:).
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.selectionPending = false
+                guard !self.stopped else { return }
+                self.publishSelection()
+            }
+        }
+
+        private func publishSelection() {
             guard let view, let document = view.document, let selection = view.currentSelection,
                   let text = selection.string?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty,
                   let selectedPage = selection.pages.first else { parent.onSelect(nil); return }
@@ -162,10 +178,17 @@ struct PDFReader: UIViewRepresentable {
         }
 
         @objc private func pageChanged() {
-            guard !restoringPosition, let view, let page = view.currentPage, let document = view.document else { return }
-            let index = document.index(for: page)
-            if index != parent.page { parent.page = index }
-            selectionChanged()
+            guard !stopped, !restoringPosition, !pagePending else { return }
+            pagePending = true
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.pagePending = false
+                guard !self.stopped, let view = self.view,
+                      let page = view.currentPage, let document = view.document else { return }
+                let index = document.index(for: page)
+                if index != NSNotFound, index != self.parent.page { self.parent.page = index }
+                self.publishSelection()
+            }
         }
     }
 }

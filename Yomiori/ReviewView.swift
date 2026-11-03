@@ -17,7 +17,7 @@ struct ReviewView: View {
     @State private var clip = ClipPlayer()
     @State private var remoteAudio = AtlasPronunciationPlayer()
 
-    static func due(_ cards: [Card], limit: Int) -> [Card] { Array(cards.filter { $0.due <= Date() }.sorted { $0.due < $1.due }.prefix(limit)) }
+    static func due(_ cards: [Card], limit: Int) -> [Card] { Array(cards.filter { $0.due <= Date() }.sorted { $0.due < $1.due }.prefix(max(0, min(limit, 100)))) }
 
     var body: some View {
         NavigationStack {
