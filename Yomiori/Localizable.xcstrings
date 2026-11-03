@@ -13277,6 +13277,870 @@
           }
         }
       }
+    },
+    "AI definition": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI definition"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 释义"
+          }
+        }
+      }
+    },
+    "AI service settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI service settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 服务设置"
+          }
+        }
+      }
+    },
+    "Add to dictionary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to dictionary"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入词典"
+          }
+        }
+      }
+    },
+    "Allow microphone access in iPhone Settings to start a voice conversation.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow microphone access in iPhone Settings to start a voice conversation."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在 iPhone 设置中允许麦克风访问，再开始语音对话。"
+          }
+        }
+      }
+    },
+    "Allow web search in voice conversations": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow web search in voice conversations"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许在语音对话中联网搜索"
+          }
+        }
+      }
+    },
+    "Audio could not keep up with the connection. Try again on a faster network.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio could not keep up with the connection. Try again on a faster network."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音频传输未能跟上对话，请切换更快的网络后重试。"
+          }
+        }
+      }
+    },
+    "Coach is speaking — you can interrupt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coach is speaking — you can interrupt"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "教练正在说话，你可以打断"
+          }
+        }
+      }
+    },
+    "Coach is thinking…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coach is thinking…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "教练正在思考…"
+          }
+        }
+      }
+    },
+    "Connecting microphone…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecting microphone…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在连接麦克风…"
+          }
+        }
+      }
+    },
+    "Conversation ended": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversation ended"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对话已结束"
+          }
+        }
+      }
+    },
+    "Definition": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Definition"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "释义"
+          }
+        }
+      }
+    },
+    "End conversation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End conversation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束对话"
+          }
+        }
+      }
+    },
+    "Enter a complete WSS endpoint, realtime model and voice.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a complete WSS endpoint, realtime model and voice."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写完整的 WSS 地址、实时模型和音色。"
+          }
+        }
+      }
+    },
+    "Enter a word or a short phrase (up to 200 characters).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a word or a short phrase (up to 200 characters)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入单词或短语（最多 200 个字符）。"
+          }
+        }
+      }
+    },
+    "In dictionary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In dictionary"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已加入词典"
+          }
+        }
+      }
+    },
+    "Interrupt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrupt"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打断"
+          }
+        }
+      }
+    },
+    "Listening — speak naturally": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening — speak naturally"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在听，请自然说话"
+          }
+        }
+      }
+    },
+    "Live Coach": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Coach"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时语音教练"
+          }
+        }
+      }
+    },
+    "Look up a word": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Look up a word"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查词"
+          }
+        }
+      }
+    },
+    "Look up this word": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Look up this word"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查询这个词"
+          }
+        }
+      }
+    },
+    "Microphone muted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone muted"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "麦克风已静音"
+          }
+        }
+      }
+    },
+    "Mute": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mute"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "静音"
+          }
+        }
+      }
+    },
+    "No local match. Look up this word with your configured AI service.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No local match. Look up this word with your configured AI service."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地没有匹配词条，可使用已配置的 AI 服务查释义。"
+          }
+        }
+      }
+    },
+    "Pronunciation & intonation practice": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pronunciation & intonation practice"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发音与语调练习"
+          }
+        }
+      }
+    },
+    "Provider": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provider"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务商"
+          }
+        }
+      }
+    },
+    "Ready to talk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready to talk"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "准备开始"
+          }
+        }
+      }
+    },
+    "Realtime model": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Realtime model"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时语音模型"
+          }
+        }
+      }
+    },
+    "Remove voice configuration": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove voice configuration"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除语音配置"
+          }
+        }
+      }
+    },
+    "Remove voice configuration?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove voice configuration?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除语音配置？"
+          }
+        }
+      }
+    },
+    "Requires a Qwen3.5 or Qwen3.8 Omni realtime model. The service decides when to search; audio and search may incur usage charges. A search count is shown only when reported by the service.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requires a Qwen3.5 or Qwen3.8 Omni realtime model. The service decides when to search; audio and search may incur usage charges. A search count is shown only when reported by the service."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要 Qwen3.5 或 Qwen3.8 Omni 实时模型。服务自行判断何时搜索；语音和搜索可能产生费用，仅在服务返回用量时显示搜索次数。"
+          }
+        }
+      }
+    },
+    "Saved words": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved words"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已收藏的词"
+          }
+        }
+      }
+    },
+    "Saved words & word lists": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved words & word lists"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收藏与词库"
+          }
+        }
+      }
+    },
+    "Speak, listen, and try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speak, listen, and try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开口说，听一听，再试一次。"
+          }
+        }
+      }
+    },
+    "Speech captions are unavailable. The voice model still receives your audio.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speech captions are unavailable. The voice model still receives your audio."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音字幕暂不可用，语音模型仍能收到原始音频。"
+          }
+        }
+      }
+    },
+    "Start voice conversation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start voice conversation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始语音对话"
+          }
+        }
+      }
+    },
+    "Tap a word to look it up": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a word to look it up"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点词查释义"
+          }
+        }
+      }
+    },
+    "The audio device is unavailable. Check your microphone and try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The audio device is unavailable. Check your microphone and try again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音频设备不可用，请检查麦克风后重试。"
+          }
+        }
+      }
+    },
+    "The microphone starts only after you press Start. Leaving the voice screen or backgrounding the app ends the session. Audio is streamed to your chosen service and is not saved by Yomiori; completed text captions are kept in Coach history.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone starts only after you press Start. Leaving the voice screen or backgrounding the app ends the session. Audio is streamed to your chosen service and is not saved by Yomiori; completed text captions are kept in Coach history."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击开始后才会启用麦克风。离开语音页面或将应用切到后台会结束对话。音频直接传送到你选择的服务，Yomiori 不保存录音；完成的文字字幕会保存在教练对话记录中。"
+          }
+        }
+      }
+    },
+    "The realtime service returned an unsupported response. Check the model and endpoint.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The realtime service returned an unsupported response. Check the model and endpoint."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时服务返回了不支持的响应，请检查模型和地址。"
+          }
+        }
+      }
+    },
+    "The voice connection ended. Start a new conversation to reconnect.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The voice connection ended. Start a new conversation to reconnect."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音连接已断开，请重新开始对话。"
+          }
+        }
+      }
+    },
+    "Unmute": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unmute"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消静音"
+          }
+        }
+      }
+    },
+    "Use the endpoint and API key from the same Alibaba Cloud region/workspace. Voice service is configured separately from the text AI service; keys stay in this device's Keychain.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the endpoint and API key from the same Alibaba Cloud region/workspace. Voice service is configured separately from the text AI service; keys stay in this device's Keychain."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请使用同一阿里云地域或工作空间的地址与 API key。语音服务与文字 AI 服务独立配置；密钥保存在此设备的钥匙串中。"
+          }
+        }
+      }
+    },
+    "Voice": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音色"
+          }
+        }
+      }
+    },
+    "Voice API key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice API key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音服务 API key"
+          }
+        }
+      }
+    },
+    "Voice service": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice service"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音服务"
+          }
+        }
+      }
+    },
+    "Voice service settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice service settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语音服务设置"
+          }
+        }
+      }
+    },
+    "Web search enabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search enabled"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "联网搜索已开启"
+          }
+        }
+      }
+    },
+    "Web search off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search off"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "联网搜索已关闭"
+          }
+        }
+      }
+    },
+    "Web search requires a Qwen3.5 or Qwen3.8 Omni realtime model.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web search requires a Qwen3.5 or Qwen3.8 Omni realtime model."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "联网搜索需要 Qwen3.5 或 Qwen3.8 Omni 实时模型。"
+          }
+        }
+      }
+    },
+    "WebSocket endpoint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WebSocket endpoint"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WebSocket 地址"
+          }
+        }
+      }
+    },
+    "Word or phrase": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Word or phrase"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单词或短语"
+          }
+        }
+      }
+    },
+    "Your original voice is sent to your realtime service so Coach can listen to pronunciation, rhythm and intonation. Feedback is a model's suggestion, not a pronunciation test score.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your original voice is sent to your realtime service so Coach can listen to pronunciation, rhythm and intonation. Feedback is a model's suggestion, not a pronunciation test score."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原始语音会发送到你配置的实时服务，供教练听取发音、节奏和语调。反馈是模型建议，不是专业发音测试评分。"
+          }
+        }
+      }
+    },
+    "live.searchCount": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web searches reported by service: %lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务返回的联网搜索次数：%lld"
+          }
+        }
+      }
+    },
+    "Live microphone conversations require a real iPhone. Dictionary lookup is available in the simulator.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live microphone conversations require a real iPhone. Dictionary lookup is available in the simulator."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时麦克风对话需要真机 iPhone，模拟器仍可使用查词。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

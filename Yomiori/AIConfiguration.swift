@@ -26,10 +26,11 @@ protocol SecretStorage {
 }
 
 struct KeychainSecretStorage: SecretStorage {
+    var account = "api-key"
     private var query: [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: (Bundle.main.bundleIdentifier ?? "Yomiori") + ".ai",
-         kSecAttrAccount as String: "api-key"]
+         kSecAttrAccount as String: account]
     }
     func read() throws -> String {
         var request = query

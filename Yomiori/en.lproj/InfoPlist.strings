@@ -1,1 +1,2 @@
 "NSSpeechRecognitionUsageDescription" = "Yomiori generates subtitles from the video or audio you choose.";
+"NSMicrophoneUsageDescription" = "Yomiori streams your voice to the realtime service you configure for live conversation and pronunciation practice.";

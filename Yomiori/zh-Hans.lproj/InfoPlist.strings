@@ -1,1 +1,2 @@
 "NSSpeechRecognitionUsageDescription" = "Yomiori 为你选择的视频或音频生成字幕。";
+"NSMicrophoneUsageDescription" = "Yomiori 将你的语音传送到你配置的实时服务，用于实时对话与发音练习。";

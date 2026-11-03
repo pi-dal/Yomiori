@@ -36,6 +36,7 @@ struct SettingsView: View {
                 .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)).listRowBackground(Theme.surface)
                 Section {
                     NavigationLink { AISettingsView() } label: { Label("AI service", systemImage: "sparkles") }
+                    NavigationLink { LiveSettingsView() } label: { Label("Voice service", systemImage: "waveform") }
                 }
                 .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)).listRowBackground(Theme.surface)
                 Section {

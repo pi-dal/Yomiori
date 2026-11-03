@@ -8,6 +8,7 @@ struct DictionaryView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Query(sort: \DictEntry.createdAt, order: .reverse) private var all: [DictEntry]
     @State private var search = ""
+    @State private var showingLookup = false
     @State private var filter = "Words"
     @State private var sort = "Newest"
     @State private var selected: DictEntry?
@@ -25,7 +26,7 @@ struct DictionaryView: View {
         case "Highlights": l = l.filter { $0.kind == "highlight" }
         default: break
         }
-        if !search.isEmpty { l = l.filter { $0.term.localizedCaseInsensitiveContains(search) || $0.meaning.localizedCaseInsensitiveContains(search) || $0.reading.localizedCaseInsensitiveContains(search) } }
+        if !search.isEmpty { l = l.filter { $0.term.localizedCaseInsensitiveContains(search) || $0.meaning.localizedCaseInsensitiveContains(search) || $0.reading.localizedCaseInsensitiveContains(search) || $0.note.localizedCaseInsensitiveContains(search) } }
         if sort == "A to Z" { l.sort { ($0.reading.isEmpty ? $0.term : $0.reading).localizedCompare($1.reading.isEmpty ? $1.term : $1.reading) == .orderedAscending } }
         return l
     }
@@ -43,6 +44,14 @@ struct DictionaryView: View {
                 if filter != "Review" {
                     DictionarySearchField(text: $search, prompt: filter == "Cards" ? "Search cards" : "dictionary.search")
                         .padding(.horizontal, 24).padding(.top, 8).padding(.bottom, 8)
+                }
+                if filter == "Words" {
+                    Button {
+                        showingLookup = true
+                    } label: {
+                        Label(search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Look up a word" : "Look up this word", systemImage: "magnifyingglass")
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    }.padding(.horizontal, 24).accessibilityIdentifier("dictionary.lookup")
                 }
                 TextTabs(items: [("Words", "nav.words"), ("Cards", "nav.cards"), ("Lists", "nav.lists"), ("Review", "nav.review")], selection: $filter)
                 if filter == "Lists" {
@@ -108,6 +117,7 @@ struct DictionaryView: View {
                 }.sharedBackgroundVisibility(.hidden)
             }
             .fullScreenCover(isPresented: $reviewing) { ReviewView() }
+            .sheet(isPresented: $showingLookup) { QuickDictionaryView(initialQuery: search) }
             .sheet(item: $selected) { EntryDetail(entry: $0).presentationDetents([.large]) }
         }
     }
@@ -281,7 +291,8 @@ struct EntryDetail: View {
                     } header: { Text("Your note").font(Theme.Fonts.meta) }
                     Section {
                         DisclosureGroup("Source") {
-                            if entry.sourceKind == "coach" || entry.sourceName.isEmpty { Text("nav.coach") }
+                            if entry.sourceKind == "lookup" { Text(verbatim: entry.sourceName) }
+                            else if entry.sourceKind == "coach" || entry.sourceName.isEmpty { Text("nav.coach") }
                             else if sourceExists {
                                 Button { dismiss(); app.goToSource(entry) } label: { Label("Go to source", systemImage: "arrow.up.right.square") }
                                 Text(entry.sourceName).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)

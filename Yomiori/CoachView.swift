@@ -21,6 +21,9 @@ struct CoachView: View {
     @State private var followsLatest = true
     @State private var userScrolling = false
     @State private var showingAI = false
+    @State private var showingLive = false
+    @State private var showingLookup = false
+    @State private var lookupSentence = ""
     @ScaledMetric(relativeTo: .subheadline) private var sendDiameter: CGFloat = 32
 
     var body: some View {
@@ -38,6 +41,8 @@ struct CoachView: View {
             } }
             #endif
             .navigationTitle("Coach").navigationBarTitleDisplayMode(.large)
+            .sheet(isPresented: $showingLive) { LiveCoachView(language: languageCode) }
+            .sheet(isPresented: $showingLookup) { QuickDictionaryView(sentence: lookupSentence, initialLanguage: languageCode) }
             .sheet(isPresented: $showingAI) {
                 NavigationStack {
                     ScrollView {
@@ -51,6 +56,10 @@ struct CoachView: View {
             }
             .navigationDestination(isPresented: $showWeak) { WeaknessesView(practice: { prompt in showWeak = false; send(prompt) }) }
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { lookupSentence = ""; showingLookup = true } label: { Image(systemName: "magnifyingglass") }
+                        .accessibilityLabel("Look up a word")
+                }.sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showWeak = true } label: { Image(systemName: "chart.bar.xaxis") }
                         .accessibilityLabel("Weaknesses")
@@ -104,6 +113,12 @@ struct CoachView: View {
                 Text("Start with a thought. We’ll work on the language together.")
                     .font(.body).foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true).padding(.bottom, 28)
+                Button {
+                    session.cancelReply(); focused = false; showingLive = true
+                } label: {
+                    Label("Start voice conversation", systemImage: "waveform")
+                        .frame(minHeight: 44)
+                }.buttonStyle(CompactActionStyle()).padding(.bottom, 20)
                 conversationStarter("Talk about my day", prompt: "Help me talk about my day.")
                 conversationStarter("Practice a café order", prompt: "Let’s practice ordering at a café.")
                 conversationStarter("Use my saved words", prompt: "Help me practice with my saved words.")
@@ -181,6 +196,9 @@ struct CoachView: View {
             } else {
                 CoachMessageContent(text: m.content)
             }
+            Button("Look up a word", systemImage: "character.book.closed") {
+                lookupSentence = m.content; showingLookup = true
+            }.font(.subheadline).frame(minHeight: 44)
             if m.role == "user" {
                 ForEach(m.corrections, id: \.self) { c in
                     Button { showWeak = true } label: {
@@ -199,6 +217,9 @@ struct CoachView: View {
 
     private var inputBar: some View {
         HStack(alignment: .bottom, spacing: 8) {
+            Button { session.cancelReply(); focused = false; showingLive = true } label: {
+                Image(systemName: "waveform").frame(width: 44, height: 44)
+            }.accessibilityLabel("Start voice conversation").accessibilityIdentifier("coach.live")
             TextField("", text: $input, prompt: Text("Message Coach").foregroundStyle(Theme.textSecondary), axis: .vertical)
                 .accessibilityLabel("Message Coach").foregroundStyle(Theme.ink)
                 .lineLimit(1...(dynamicTypeSize.isAccessibilitySize ? 2 : 5)).focused($focused)

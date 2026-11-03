@@ -36,6 +36,10 @@ xcodebuild -project Yomiori.xcodeproj -scheme Yomiori \
 
 Local import, reading, dictionary and review features store learner data on the device. This is a sanitized source snapshot, published without the original private development history. Configure AI inside **Read → Settings → AI service**, using OpenAI Responses, Chat Completions or a custom relay. Enter the full HTTPS endpoint, model and optional API key (stored in Keychain), then test and save. See [AI configuration and protocol details](docs/ai-service.md). The app includes no analytics or feedback submission client. No service credentials or learner database are included. The unverified debug sample audio is omitted; the optional audio seed safely skips it. Reading, PDF import, local dictionary, word lists and review remain available. AI features require your own service configuration. See [the architecture review and changes](docs/architecture-review.md) and [the FlowDown package comparison](docs/flowdown-packages.md).
 
+## Live voice and quick dictionary
+
+Coach's waveform button opens live voice conversation and pronunciation/intonation practice using original audio. Configure your own Qwen Omni Realtime endpoint, model, voice and API key in **Settings → Voice service**. Supported Qwen3.5/3.8 realtime models can optionally search the web. **Dictionary → Look up a word** searches saved words and local word lists, then uses your text AI service for new definitions; save explicitly with **Add to dictionary**. Coach text and live captions share this lookup flow. See [setup, architecture and verification limits](docs/live-coach.md).
+
 ## Modern rendering and export
 
 Coach assistant replies use MarkdownView 4.8.4 for headings, lists, tables, code blocks and streaming text. Ordinary reader text uses Litext 3.6.5 for native selection handles, magnification and lookup menus. Japanese furigana retains the existing CoreText word-boundary layout, sharing the same learning annotations. ZIPFoundation 0.9.20 packages Anki CSV, audio and import instructions into one ZIP; extract it before importing into Anki. Exported flags are saved after sharing completes.
