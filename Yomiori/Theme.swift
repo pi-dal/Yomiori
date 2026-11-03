@@ -13,38 +13,96 @@ extension UIColor {
 }
 
 enum Theme {
-    // Official Radix Gray roles, with Red reserved for errors.
-    static let background = Color("FocusBackground")
-    static let surface = Color("FocusSurface")
-    static let controlFill = Color("FocusControlFill")
-    static let controlHover = Color("FocusControlHover")
-    static let controlSelected = Color("FocusControlSelected")
-    static let separator = Color("FocusSeparator")
-    static let controlBorder = Color("FocusControlBorder")
-    static let focusBorder = Color("FocusFocusBorder")
-    static let solid = Color("FocusSolid")
-    static let solidHover = Color("FocusSolidHover")
-    static let textSecondary = Color("FocusTextSecondary")
-    static let ink = Color("FocusInk")
-    static let accent = ink
-    static let errorText = Color("FocusErrorText")
-    static let errorBackground = Color("FocusErrorBackground")
-    static let errorBorder = Color("FocusErrorBorder")
-    static let vermilion = errorText
-    static let highlight = controlSelected
+    // The app icon's world: kinari washi paper, sumi ink, matcha leaves, sakura petals and a shu seal.
+    // Native Liquid Glass still belongs to floating controls; these tones own the ground beneath them.
+    static let background = Color(light: 0xF5F0E6, dark: 0x1B1916)
+    static let surface = Color(light: 0xFBF8F2, dark: 0x26231F)
+    static let groupedBackground = Color(light: 0xEDE7DB, dark: 0x131210)
+    static let controlFill = Color(light: 0xE9E2D5, dark: 0x2A2723)
+    static let controlHover = Color(light: 0xE2DACB, dark: 0x322E2A)
+    static let controlSelected = Color(light: 0xD8CFBE, dark: 0x3B3732)
+    static let separator = Color(light: 0xDAD1C1, dark: 0x3A352F)
+    static let controlBorder = separator
+    static let focusBorder = ink
+    static let textSecondary = Color(light: 0x6B655C, dark: 0xA49C8F)
+    static let ink = Color(light: 0x2B2824, dark: 0xECE5D7)
+    /// Matcha: the single interactive tint.
+    static let accent = Color(light: 0x46663F, dark: 0xA3C095)
+    static let onAccent = background
+    static let solid = accent
+    static let solidHover = accent
+    /// Shu: errors and the reading-position bookmark.
+    static let vermilion = Color(light: 0xB23A26, dark: 0xEE8A70)
+    static let errorText = vermilion
+    static let errorBackground = Color(light: 0xF6E2D9, dark: 0x3A201A)
+    static let errorBorder = vermilion
+    /// Sakura wash behind highlighted text.
+    static let highlight = Color(light: 0xEFA7B4, dark: 0xD27A8B).opacity(0.42)
     static let dim = textSecondary
     static let track = controlSelected
     static let weak = ink
     static let good = ink
 
     enum Fonts {
-        // UIKit metrics keep the three system-font roles responsive to Dynamic Type.
-        static var meta: Font { font(14, relativeTo: .caption1) }
-        static var body: Font { font(17, relativeTo: .body) }
-        static var focus: Font { font(28, relativeTo: .title2) }
-        private static func font(_ size: CGFloat, relativeTo style: UIFont.TextStyle) -> Font {
-            Font(UIFontMetrics(forTextStyle: style).scaledFont(for: .systemFont(ofSize: size)))
+        static var meta: Font { .subheadline }
+        static var body: Font { .body }
+        static var focus: Font { .title }
+
+        /// Hiragino Mincho lacks most Simplified Chinese glyphs; interface copy in Chinese keeps one consistent fallback face.
+        static var interfaceUsesMincho: Bool { !(Bundle.main.preferredLocalizations.first ?? "en").hasPrefix("zh") }
+
+        /// New York for Latin text, cascading to Hiragino Mincho for kana and kanji, sized by Dynamic Type.
+        static func literary(_ style: UIFont.TextStyle, bold: Bool = false, mincho: Bool = true,
+                             size category: UIContentSizeCategory = UIApplication.shared.preferredContentSizeCategory) -> UIFont {
+            let size = UIFont.preferredFont(forTextStyle: style, compatibleWith: UITraitCollection(preferredContentSizeCategory: category)).pointSize
+            var descriptor = UIFont.systemFont(ofSize: size, weight: bold ? .semibold : .regular).fontDescriptor
+            descriptor = descriptor.withDesign(.serif) ?? descriptor
+            if mincho {
+                descriptor = descriptor.addingAttributes([.cascadeList: [UIFontDescriptor(name: bold ? "HiraMinProN-W6" : "HiraMinProN-W3", size: size)]])
+            }
+            return UIFont(descriptor: descriptor, size: size)
         }
+    }
+}
+
+/// Original text always reads in Mincho; interface copy does when the interface language supports it.
+enum LiteraryScript { case original, interface }
+
+private struct LiteraryFont: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let style: UIFont.TextStyle, bold: Bool, script: LiteraryScript
+    func body(content: Content) -> some View {
+        content.font(Font(Theme.Fonts.literary(style, bold: bold, mincho: script == .original || Theme.Fonts.interfaceUsesMincho,
+                                               size: UIContentSizeCategory(dynamicTypeSize))))
+    }
+}
+
+extension View {
+    func literary(_ style: UIFont.TextStyle, bold: Bool = false, _ script: LiteraryScript = .interface) -> some View {
+        modifier(LiteraryFont(style: style, bold: bold, script: script))
+    }
+}
+
+/// A short ink rule ending in a dot, used beside section labels like a brush stroke trailing off.
+struct InkRule: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            Rectangle().fill(Theme.separator).frame(height: 1)
+            Circle().fill(Theme.vermilion.opacity(0.85)).frame(width: 4, height: 4)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// A section label set in Mincho, trailed by an ink rule.
+struct SectionLabel: View {
+    let title: LocalizedStringKey
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(title).literary(.headline, bold: true).foregroundStyle(Theme.ink).fixedSize()
+            InkRule()
+        }
+        .accessibilityElement(children: .combine).accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -82,70 +140,201 @@ extension View {
     }
 }
 
-/// Text tabs with a 2pt ink underline on the selected one.
-struct TextTabs: View {
-    let items: [(id: String, label: String)]
-    @Binding var selection: String
-    var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 24) {
-                    ForEach(items, id: \.id) { t in
-                        let on = selection == t.id
-                        Button { selection = t.id } label: {
-                            Text(LocalizedStringKey(t.label))
-                                .font(Theme.Fonts.body.weight(on ? .semibold : .regular))
-                                .lineLimit(1).fixedSize()
-                                .foregroundStyle(on ? Theme.ink : Theme.textSecondary)
-                                .padding(.bottom, 6).frame(minWidth: 44, minHeight: 44)
-                                .contentShape(Rectangle())
-                                .overlay(alignment: .bottom) {
-                                    if on { Rectangle().fill(Theme.ink).frame(height: 2) }
-                                }
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityAddTraits(on ? .isSelected : [])
-                        .id(t.id)
-                    }
-                }
-                .padding(.horizontal, 24)
-            }
-            .onChange(of: selection) { _, value in proxy.scrollTo(value, anchor: .center) }
+/// Shared library ordering keeps title comparisons natural (for example, Chapter 2 before Chapter 10).
+enum LibraryOrder: String, CaseIterable {
+    case newest, title
+
+    var label: LocalizedStringKey {
+        switch self {
+        case .newest: "Newest first"
+        case .title: "Title"
         }
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 0.5) }
+    }
+
+    func sorted<Item>(_ items: [Item], title: (Item) -> String, createdAt: (Item) -> Date) -> [Item] {
+        items.sorted { left, right in
+            if self == .title {
+                let order = title(left).localizedStandardCompare(title(right))
+                if order != .orderedSame { return order == .orderedAscending }
+            }
+            return createdAt(left) > createdAt(right)
+        }
     }
 }
 
-/// Empty state: symbol, headline, one sentence, optional ink pill button.
+struct LibrarySearchEmpty: View {
+    @Binding var search: String
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("No matching titles", systemImage: "magnifyingglass")
+        } description: {
+            Text("Try another title or clear your search.")
+        } actions: {
+            Button("Clear search") { search = "" }
+                .foregroundStyle(Theme.accent).frame(minHeight: 44)
+        }
+    }
+}
+
+/// Native segmented controls retain system selection, focus and accessibility behavior.
+struct TextTabs: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let items: [(id: String, label: String)]
+    @Binding var selection: String
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            if !dynamicTypeSize.isAccessibilitySize {
+                Picker("", selection: $selection) {
+                    ForEach(items, id: \.id) { item in
+                        Text(LocalizedStringKey(item.label)).tag(item.id)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .fixedSize(horizontal: true, vertical: false)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(items, id: \.id) { item in
+                        Button { selection = item.id } label: {
+                            Text(LocalizedStringKey(item.label))
+                                .font(Theme.Fonts.meta.weight(.semibold))
+                                .padding(.horizontal, 16).frame(minHeight: 44)
+                                .foregroundStyle(selection == item.id ? Theme.onAccent : Theme.ink)
+                                .background(selection == item.id ? Theme.accent : Theme.controlFill, in: Capsule())
+                        }
+                        .buttonStyle(PressFeedbackStyle())
+                        .accessibilityAddTraits(selection == item.id ? .isSelected : [])
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24).padding(.vertical, 4)
+    }
+}
+
+/// A reading-oriented introduction with compact controls and room for the library.
 struct EmptyState: View {
     let symbol: String, title: LocalizedStringKey
     var message: LocalizedStringKey? = nil
     var action: (label: LocalizedStringKey, run: () -> Void)?
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: symbol).font(.system(size: 20, weight: .medium)).foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
-            Text(title).font(Theme.Fonts.body.weight(.semibold))
-            if let message { Text(message).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.leading) }
-            if let action {
-                Button(action: action.run) {
-                    Text(action.label)
-                }.buttonStyle(InkButtonStyle()).padding(.top, 8)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(title).literary(.title2)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let message {
+                    Text(message).font(.subheadline).foregroundStyle(Theme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 10)
+                }
+                if let action {
+                    Button(action: action.run) {
+                        HStack(spacing: 10) {
+                            Text(action.label)
+                            Image(systemName: "arrow.up.right").font(.caption.weight(.semibold))
+                        }
+                    }
+                    .buttonStyle(CompactActionStyle())
+                    .padding(.top, 24)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24).padding(.top, 28).padding(.bottom, 32)
         }
-        .padding(24).frame(maxWidth: 720, maxHeight: .infinity, alignment: .topLeading).frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: 640).frame(maxWidth: .infinity)
     }
 }
 
-/// Full-width ink button, with an explicit disabled appearance.
+/// A direct source entry point, with native-sized hit areas and structural separators.
+struct SourceAction: View {
+    let symbol: String
+    let title: LocalizedStringKey
+    let detail: LocalizedStringKey
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 16) {
+                Image(systemName: symbol).font(.title3).frame(width: 28)
+                    .foregroundStyle(Theme.accent).accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(title).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
+                    Text(detail).font(.subheadline).foregroundStyle(Theme.textSecondary)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "arrow.up.right").font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
+            }
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .padding(.vertical, 18)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressFeedbackStyle())
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 0.5) }
+    }
+}
+
+/// Shared action treatment; visual density is independent from the 44pt touch target.
+struct CompactActionStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(isEnabled ? Theme.background : Theme.textSecondary)
+            .padding(.horizontal, 16).padding(.vertical, 11)
+            .frame(minHeight: 44)
+            .background(isEnabled ? Theme.ink : Theme.controlFill, in: RoundedRectangle(cornerRadius: 10))
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
+            .animation(reduceMotion ? nil : .timingCurve(0.2, 0, 0, 1, duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+/// Consistent page heading inside a system navigation stack.
+struct PageHeading: View {
+    let title: LocalizedStringKey
+    let subtitle: String
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).literary(.title1, bold: true)
+            if !subtitle.isEmpty { Text(subtitle).font(.subheadline).foregroundStyle(Theme.textSecondary) }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24).padding(.top, 8).padding(.bottom, 24)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Full-width version for tasks that need a single primary action.
 struct InkButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var isStatic = false
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(Theme.Fonts.body.weight(.semibold))
-            .padding(.horizontal, 16)
+        configuration.label.font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 16).padding(.vertical, 11)
             .foregroundStyle(isEnabled ? Theme.background : Theme.textSecondary)
-            .frame(maxWidth: .infinity, minHeight: 48)
-            .background(isEnabled ? (configuration.isPressed ? Theme.textSecondary : Theme.ink) : Theme.controlFill,
-                        in: RoundedRectangle(cornerRadius: 10))
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(isEnabled ? Theme.ink : Theme.controlFill, in: RoundedRectangle(cornerRadius: 10))
+            .opacity(configuration.isPressed && isEnabled ? 0.85 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion && !isStatic ? 0.96 : 1)
+            .animation(reduceMotion ? nil : .timingCurve(0.2, 0, 0, 1, duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+/// Tactile feedback for custom content buttons; native controls keep native behavior.
+struct PressFeedbackStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var isStatic = false
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.75 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion && !isStatic ? 0.96 : 1)
+            .animation(reduceMotion ? nil : .timingCurve(0.2, 0, 0, 1, duration: 0.15), value: configuration.isPressed)
     }
 }
 

@@ -10,25 +10,19 @@ struct YomioriApp: App {
         let preferences = UserDefaults.standard
         if preferences.object(forKey: "targetLang") == nil { preferences.set("ja", forKey: "targetLang") }
         if preferences.object(forKey: "nativeLang") == nil { preferences.set(Language.deviceDefault, forKey: "nativeLang") }
-        let navigation = UINavigationBarAppearance()
-        navigation.configureWithOpaqueBackground()
-        navigation.backgroundColor = UIColor(Theme.background)
-        navigation.shadowColor = .clear
-        navigation.titleTextAttributes = [
-            .font: UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 17, weight: .semibold)),
-            .foregroundColor: UIColor(Theme.ink)
-        ]
-        UINavigationBar.appearance().standardAppearance = navigation
-        UINavigationBar.appearance().scrollEdgeAppearance = navigation
-        UINavigationBar.appearance().compactAppearance = navigation
-
+        // Navigation titles are set like a book's chapter heads; the bar itself stays native.
+        let mincho = Theme.Fonts.interfaceUsesMincho, ink = UIColor(Theme.ink)
+        let bar = UINavigationBar.appearance()
+        bar.largeTitleTextAttributes = [.font: UIFontMetrics(forTextStyle: .largeTitle).scaledFont(for: Theme.Fonts.literary(.largeTitle, bold: true, mincho: mincho, size: .large)), .foregroundColor: ink]
+        bar.titleTextAttributes = [.font: UIFontMetrics(forTextStyle: .headline).scaledFont(for: Theme.Fonts.literary(.headline, bold: true, mincho: mincho, size: .large)), .foregroundColor: ink]
     }
 
     var body: some Scene {
         WindowGroup {
             entryView
                 .environment(app)
-                .tint(Theme.ink)
+                .tint(Theme.accent)
+                .listRowSeparatorTint(Theme.separator)
                 .font(Theme.Fonts.body)
                 .foregroundStyle(Theme.ink)
                 .scrollContentBackground(.hidden)
@@ -39,7 +33,12 @@ struct YomioriApp: App {
 
     @ViewBuilder private var entryView: some View {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--component-preview") {
+        if ProcessInfo.processInfo.arguments.contains("--library-design-preview") {
+            LibraryDesignPreview()
+                .modelContainer(for: [Material.self, DictEntry.self, PDFDoc.self, ChatMsg.self, Mistake.self, Card.self, ImmersionLog.self], inMemory: true)
+        } else if ProcessInfo.processInfo.arguments.contains("--pdf-preview") {
+            PDFReadingPreview().modelContainer(for: [PDFDoc.self, DictEntry.self], inMemory: true)
+        } else if ProcessInfo.processInfo.arguments.contains("--component-preview") {
             ComponentPreview().modelContainer(for: Card.self, inMemory: true)
         } else { RootView() }
         #else
@@ -75,7 +74,6 @@ final class AppState {
 
 struct RootView: View {
     @Environment(AppState.self) private var app
-    @State private var keyboardVisible = false
     @State private var operations = Operations.shared
     @Environment(\.modelContext) private var context
     @State private var resetError: String?
@@ -99,54 +97,12 @@ struct RootView: View {
     }
     private func content(app: AppState) -> some View {
         @Bindable var app = app
-        return VStack(spacing: 0) {
-            TabView(selection: $app.tab) {
-            Tab("Read", systemImage: "book", value: AppTab.read) { ReadView().toolbar(.hidden, for: .tabBar) }
-            Tab("Documents", systemImage: "doc.text", value: AppTab.documents) { DocumentsView().toolbar(.hidden, for: .tabBar) }
-            Tab("Dictionary", systemImage: "character.book.closed", value: AppTab.dictionary) { DictionaryView().toolbar(.hidden, for: .tabBar) }
-            Tab("Coach", systemImage: "bubble.left.and.bubble.right", value: AppTab.coach) { CoachView().toolbar(.hidden, for: .tabBar) }
-            }
-            if !keyboardVisible { FocusTabBar(selection: $app.tab) }
+        return TabView(selection: $app.tab) {
+            Tab("Read", systemImage: "book", value: AppTab.read) { ReadView() }
+            Tab("Documents", systemImage: "doc.text", value: AppTab.documents) { DocumentsView() }
+            Tab("Dictionary", systemImage: "character.book.closed", value: AppTab.dictionary) { DictionaryView() }
+            Tab("Coach", systemImage: "bubble.left.and.bubble.right", value: AppTab.coach) { CoachView() }
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in keyboardVisible = true }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in keyboardVisible = false }
-    }
-}
-
-/// Owns the bottom safe area once; every destination keeps its native navigation stack.
-private struct FocusTabBar: View {
-    @Binding var selection: AppTab
-    private let tabs: [(AppTab, String, String)] = [
-        (.read, "Read", "book"), (.documents, "Documents", "doc.text"),
-        (.dictionary, "Dictionary", "character.book.closed"), (.coach, "Coach", "bubble.left.and.bubble.right")
-    ]
-    var body: some View {
-        GlassEffectContainer(spacing: 8) {
-            HStack(alignment: .center, spacing: 0) {
-                ForEach(tabs, id: \.0) { tab, label, symbol in
-                    let selected = selection == tab
-                    Button { selection = tab } label: {
-                        VStack(spacing: 4) {
-                            Image(systemName: symbol).font(.system(size: 20, weight: selected ? .semibold : .regular))
-                                .frame(width: 24, height: 24).accessibilityHidden(true)
-                            Text(LocalizedStringKey(label)).font(Theme.Fonts.meta.weight(selected ? .semibold : .regular))
-                                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                        }
-                        .foregroundStyle(selected ? Theme.ink : Theme.textSecondary)
-                        .padding(.horizontal, 4).padding(.vertical, 10)
-                        .frame(maxWidth: .infinity, minHeight: 68)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(selected ? .isSelected : [])
-                }
-            }
-            .frame(maxWidth: 560)
-            .padding(.horizontal, 8)
-            .glassEffect(.regular, in: .capsule)
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 8)
-        .frame(maxWidth: .infinity)
+        .tabBarMinimizeBehavior(.onScrollDown)
     }
 }

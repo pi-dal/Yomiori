@@ -18,8 +18,10 @@ import CoreText
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byWordWrapping
         paragraph.lineSpacing = lineSpacing
-        let descriptor = UIFont.systemFont(ofSize: pointSize, weight: .semibold).fontDescriptor.addingAttributes([
-            .cascadeList: [UIFontDescriptor(name: "HiraginoSans-W6", size: pointSize)]
+        // Book typography: New York for Latin, Hiragino Mincho for kana and kanji.
+        let system = UIFont.systemFont(ofSize: pointSize).fontDescriptor
+        let descriptor = (system.withDesign(.serif) ?? system).addingAttributes([
+            .cascadeList: [UIFontDescriptor(name: "HiraMinProN-W3", size: pointSize)]
         ])
         let content = NSMutableAttributedString(string: text, attributes: [
             .font: UIFont(descriptor: descriptor, size: pointSize),

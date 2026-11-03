@@ -137,7 +137,7 @@ struct ReviewView: View {
             Text(a).fixedSize(horizontal: true, vertical: true).multilineTextAlignment(.center)
             Text(a).fixedSize(horizontal: false, vertical: true).multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
-        }.font(Theme.Fonts.focus.weight(.semibold)).foregroundStyle(Theme.ink)
+        }.literary(.title1, bold: true, .original).foregroundStyle(Theme.ink)
     }
 
     private func rate(_ c: Card, _ r: Rating) {

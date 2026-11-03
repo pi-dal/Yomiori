@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "title": "Design System: Yomiori",
+  "extensions": {
+    "motion": [
+      {
+        "name": "press-scale",
+        "value": "0.96",
+        "purpose": "Custom action feedback; removed under Reduce Motion."
+      },
+      {
+        "name": "press-transition",
+        "value": "150ms cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Interruptible custom press feedback."
+      }
+    ],
+    "shadows": [
+      {
+        "name": "document-cover",
+        "value": "SwiftUI black 0.06 radius 2 x 0 y 1; black 0.08 radius 9 x 0 y 5",
+        "purpose": "Actual fitted PDF page edges, including landscape covers; no outer placeholder shadow."
+      }
+    ]
+  },
+  "components": [],
+  "narrative": {
+    "overview": "Original passages, actual PDF pages and saved words establish its character, set on the app icon's world: washi paper, sumi ink, Mincho type, one matcha tint, shu for the bookmark and errors, sakura for highlights. Native navigation keeps the app familiar on iPhone.",
+    "rules": [
+      {
+        "name": "Content First",
+        "body": "Color identifies selection or action; it does not tint reading pages or ordinary library rows.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Use real original text, source titles and PDF covers.",
+      "Inspect populated states, empty states, Chinese, light/dark appearance and accessibility sizes.",
+      "Preserve 44pt targets, system navigation, edge-swipe back and PDF text selection."
+    ],
+    "donts": [
+      "Don't reintroduce repeated branding/title stacks, decorative green panels or giant primary pills.",
+      "Don't turn review screenshots or passing tests into a claim of user approval."
+    ]
+  }
+}

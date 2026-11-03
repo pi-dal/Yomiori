@@ -4,8 +4,10 @@ import SwiftData
 struct CoachView: View {
     @Environment(\.modelContext) private var ctx
     @Environment(AppState.self) private var app
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Query(sort: \ChatMsg.createdAt) private var allMessages: [ChatMsg]
     @AppStorage("targetLang") private var languageCode = "ja"
+    @AppStorage("coachStage") private var stage = CoachStage.beginner.rawValue
     private var msgs: [ChatMsg] { allMessages.filter { $0.languageCode == languageCode } }
     @Query private var mistakes: [Mistake]
     @State private var input = ""
@@ -19,22 +21,11 @@ struct CoachView: View {
     @State private var followsLatest = true
     @State private var userScrolling = false
     @State private var showingAI = false
+    @ScaledMetric(relativeTo: .subheadline) private var sendDiameter: CGFloat = 32
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                HStack {
-                    Picker("Language", selection: $languageCode) { Text("Japanese").tag("ja"); Text("English").tag("en") }.pickerStyle(.menu).disabled(sending)
-                    Spacer()
-                }.font(Theme.Fonts.body)
-                    .frame(maxWidth: 720, minHeight: 44).padding(.horizontal, 24).padding(.top, 16).frame(maxWidth: .infinity)
-                HStack(spacing: 4) {
-                    NavigationLink { StagePicker() } label: { Text(CoachStage.current.label) }
-                    Text("•")
-                    Button("AI-generated content") { showingAI = true }
-                }
-                .font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
-                .frame(maxWidth: 720, alignment: .leading).padding(.horizontal, 24).frame(maxWidth: .infinity)
+            Group {
                 if msgs.isEmpty && streaming == nil && error == nil { emptyState } else { chat }
             }
             .background(Theme.background)
@@ -46,8 +37,7 @@ struct CoachView: View {
                 for l in lines { while sending { try? await Task.sleep(for: .seconds(1)) }; send(l); try? await Task.sleep(for: .seconds(2)); while sending { try? await Task.sleep(for: .seconds(1)) }; try? await Task.sleep(for: .seconds(15)) }
             } }
             #endif
-            .navigationTitle("Coach").navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Theme.background, for: .navigationBar).toolbarBackground(.visible, for: .navigationBar)
+            .navigationTitle("Coach").navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showingAI) {
                 NavigationStack {
                     ScrollView {
@@ -62,8 +52,9 @@ struct CoachView: View {
             .navigationDestination(isPresented: $showWeak) { WeaknessesView(practice: { prompt in showWeak = false; send(prompt) }) }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Weaknesses") { showWeak = true }.foregroundStyle(Theme.ink)
-                }
+                    Button { showWeak = true } label: { Image(systemName: "chart.bar.xaxis") }
+                        .accessibilityLabel("Weaknesses")
+                }.sharedBackgroundVisibility(.hidden)
                 if !msgs.isEmpty {
                     ToolbarItem(placement: .topBarLeading) {
                         Button { session.clear(language: languageCode, modelContext: ctx) } label: { Image(systemName: "trash") }.accessibilityLabel("Clear chat")
@@ -81,41 +72,72 @@ struct CoachView: View {
         }
     }
 
-    private var emptyState: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                coachRow(icon: "bubble.left", title: "Start a conversation", detail: "Practice real-life \(Language.find(languageCode).displayName) with AI") {
-                    input = L10n.string("coach.suggestTalk"); focused = true
-                }
-                if let latest = msgs.last {
-                    coachRow(icon: "doc.text", title: "Recent conversation", detail: latest.content) { focused = true }
-                }
-                coachRow(icon: "chart.bar", title: "Practice & improve", detail: "Review saved words and check your weaknesses") { showWeak = true }
+    private var conversationSettings: some View {
+        Menu {
+            Picker("Language", selection: $languageCode) {
+                Text("Japanese").tag("ja"); Text("English").tag("en")
             }
-            .frame(maxWidth: 720, alignment: .leading).padding(.horizontal, 24).padding(.top, 32).frame(maxWidth: .infinity)
+            Picker("coach.stage", selection: $stage) {
+                ForEach(CoachStage.allCases, id: \.self) { value in Text(value.label).tag(value.rawValue) }
+            }
+            Button("AI-generated content") { showingAI = true }
+        } label: {
+            HStack(spacing: 7) {
+                Text(Language.find(languageCode).displayName + " · " + (CoachStage(rawValue: stage) ?? .beginner).label)
+                    .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+                Image(systemName: "chevron.down").font(.caption2.weight(.semibold))
+            }
+            .font(.subheadline).frame(minHeight: 44).contentShape(Rectangle())
         }
+        .disabled(sending).accessibilityLabel("Conversation settings")
+        .accessibilityValue(Language.find(languageCode).displayName + ", " + (CoachStage(rawValue: stage) ?? .beginner).label)
     }
 
-    private func coachRow(icon: String, title: String, detail: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 16) {
-                Image(systemName: icon).font(.system(size: 24)).frame(width: 32).accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(Theme.Fonts.body.weight(.semibold))
-                    Text(detail).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary)
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right").foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
+    private var emptyState: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                conversationSettings
+                Text("What’s on your mind?")
+                    .literary(.title1)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 20).padding(.bottom, 12)
+                Text("Start with a thought. We’ll work on the language together.")
+                    .font(.body).foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true).padding(.bottom, 28)
+                conversationStarter("Talk about my day", prompt: "Help me talk about my day.")
+                conversationStarter("Practice a café order", prompt: "Let’s practice ordering at a café.")
+                conversationStarter("Use my saved words", prompt: "Help me practice with my saved words.")
+                Button { showWeak = true } label: {
+                    Label("Practice & improve", systemImage: "chart.bar")
+                        .font(.subheadline).frame(minHeight: 44)
+                }.padding(.top, 20)
             }
-            .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
-            .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 0.5) }
-        }.buttonStyle(.plain)
+            .frame(maxWidth: 640, alignment: .leading).padding(.horizontal, 24).padding(.bottom, 24).frame(maxWidth: .infinity)
+        }
+        .frame(maxHeight: .infinity)
+    }
+
+    private func conversationStarter(_ title: LocalizedStringKey, prompt: String) -> some View {
+        Button { input = L10n.string(prompt); focused = true } label: {
+            HStack(spacing: 16) {
+                Text(title).font(.body).foregroundStyle(Theme.ink)
+                Spacer(minLength: 8)
+                Image(systemName: "arrow.up.left").font(.caption.weight(.medium))
+                    .foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
+            }
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .padding(.vertical, 10).contentShape(Rectangle())
+        }
+        .buttonStyle(PressFeedbackStyle())
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 0.5) }
     }
 
     private var chat: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 24) {
+                    conversationSettings
                     ForEach(msgs) { m in bubble(m).id(m.id) }
                     if let s = streaming {
                         VStack(alignment: .leading, spacing: 8) {
@@ -169,19 +191,34 @@ struct CoachView: View {
                     .accessibilityLabel([c.wrong, c.right, c.reason].joined(separator: "\n"))
                 }
             }
-        }.frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(m.role == "user" ? 20 : 0)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(m.role == "user" ? Theme.surface : .clear, in: RoundedRectangle(cornerRadius: 24))
     }
 
     private var inputBar: some View {
         HStack(alignment: .bottom, spacing: 8) {
             TextField("", text: $input, prompt: Text("Message Coach").foregroundStyle(Theme.textSecondary), axis: .vertical)
-                .accessibilityLabel("Message Coach").foregroundStyle(Theme.ink).lineLimit(1...5).focused($focused)
-                .font(Theme.Fonts.body).padding(.horizontal, 12).padding(.vertical, 12).frame(minHeight: 48).background(Theme.controlFill, in: RoundedRectangle(cornerRadius: 8))
-            Button { let t = input; input = ""; send(t) } label: { Image(systemName: "arrow.up").font(.system(size: 20)).foregroundStyle(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending ? Theme.textSecondary : Theme.background).frame(width: 48, height: 48).background(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending ? Theme.controlFill : Theme.ink, in: RoundedRectangle(cornerRadius: 10)) }
-                .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending)
-                .accessibilityLabel("Send")
-        }.frame(maxWidth: 720, alignment: .leading).padding(.horizontal, 24).padding(.vertical, 16).frame(maxWidth: .infinity).background(Theme.background)
-            .font(Theme.Fonts.body)
+                .accessibilityLabel("Message Coach").foregroundStyle(Theme.ink)
+                .lineLimit(1...(dynamicTypeSize.isAccessibilitySize ? 2 : 5)).focused($focused)
+                .font(.body).padding(.leading, 14).padding(.vertical, 9).frame(minHeight: 44)
+            Button { let t = input; input = ""; send(t) } label: {
+                Image(systemName: "arrow.up").font(.subheadline.weight(.semibold))
+                    .foregroundStyle(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending ? Theme.textSecondary : Theme.background)
+                    .frame(width: sendDiameter, height: sendDiameter)
+                    .background(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending ? Theme.controlFill : Theme.ink, in: Circle())
+                    .frame(width: max(44, sendDiameter + 12), height: max(44, sendDiameter + 12))
+            }
+            .buttonStyle(PressFeedbackStyle())
+            .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending)
+            .accessibilityLabel("Send")
+        }
+        .padding(3)
+        .background(Theme.controlFill, in: RoundedRectangle(cornerRadius: 16))
+        .frame(maxWidth: 680, alignment: .leading)
+        .padding(.horizontal, 20).padding(.vertical, 8).frame(maxWidth: .infinity)
+        .font(Theme.Fonts.body)
     }
 
     private func retry() { session.retry(language: languageCode, context: context, modelContext: ctx) }

@@ -43,7 +43,7 @@ struct AISettingsView: View {
                     Text("Enter the full endpoint, including /v1/responses or /v1/chat/completions. A custom relay returns a text field.")
                     Text("Your API key is stored in Keychain on this device. Reading passages and chat messages are sent to the service you choose.")
                 }.font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
-            }
+            }.listRowBackground(Theme.surface)
             Section {
                 Button {
                     testConnection()
@@ -57,15 +57,15 @@ struct AISettingsView: View {
                 if let testResult { Text(testResult).foregroundStyle(Theme.textSecondary).accessibilityAddTraits(.updatesFrequently) }
                 if let failure { Text(failure).foregroundStyle(Theme.errorText).accessibilityAddTraits(.updatesFrequently) }
                 if testing { Button("Cancel", role: .cancel) { cancelTest() } }
-            } footer: { Text("Testing sends a short message and may incur usage charges. Changes take effect after saving.").font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
+            } footer: { Text("Testing sends a short message and may incur usage charges. Changes take effect after saving.").font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }.listRowBackground(Theme.surface)
             if !loaded {
-                Section { Button("Try again") { load() } }
+                Section { Button("Try again") { load() } }.listRowBackground(Theme.surface)
             }
             Section {
                 Button("Remove AI configuration", role: .destructive) { confirmReset = true }.disabled(!loaded || testing)
-            }
+            }.listRowBackground(Theme.surface)
         }
-        .scrollContentBackground(.hidden).background(Theme.background)
+        .scrollContentBackground(.hidden).background(Theme.groupedBackground)
         .foregroundStyle(Theme.ink).tint(Theme.ink).font(Theme.Fonts.body)
         .navigationTitle("AI service").navigationBarTitleDisplayMode(.inline)
         .toolbar {

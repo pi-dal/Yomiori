@@ -18,6 +18,19 @@ struct ReadView: View {
     @State private var error: String?
     @State private var path: [Material] = []
     @AppStorage("targetLang") private var importLanguage = "ja"
+    @AppStorage("readLibraryOrder") private var order = LibraryOrder.newest
+    @AppStorage("lastOpenedMaterial") private var lastOpenedID = ""
+    @State private var search = ""
+
+    private var query: String { search.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var shown: [Material] {
+        order.sorted(items.filter { query.isEmpty || $0.title.localizedStandardContains(query) },
+                     title: { $0.title }, createdAt: { $0.createdAt })
+    }
+    private var resumed: Material? {
+        items.first(where: { $0.id.uuidString == lastOpenedID })
+            ?? items.first(where: { $0.lastLine > 0 && !$0.lines.isEmpty }) ?? items.first
+    }
 
     enum ImportKind: Identifiable { case media, subtitle; var id: Self { self } }
     struct ModeBox: Identifiable { let mode: LinkSheet.Mode; var id: Int { mode == .link ? 0 : 1 } }
@@ -38,6 +51,7 @@ struct ReadView: View {
                 .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
                 .listRowSeparatorTint(Theme.separator)
                 .listRowSeparator(.hidden, edges: .top)
+                .listRowBackground(Theme.surface)
                 .alignmentGuide(.listRowSeparatorTrailing) { dimensions in dimensions[.trailing] }
                 row("Video or audio", "") { showImport = false; importer = .media }
                 row("Photos", "") { showImport = false; showPhotos = true }
@@ -45,10 +59,10 @@ struct ReadView: View {
                 row("Media link", "") { showImport = false; Task { try? await Task.sleep(for: .milliseconds(400)); linkMode = .link } }
                 row("Podcast feed", "") { showImport = false; Task { try? await Task.sleep(for: .milliseconds(400)); linkMode = .podcast } }
             }
-            .listStyle(.plain)
+            .listStyle(.insetGrouped)
             .environment(\.defaultMinListRowHeight, 56)
             .listRowSeparatorTint(Theme.separator)
-            .scrollContentBackground(.hidden).background(Theme.background)
+            .scrollContentBackground(.hidden).background(Theme.groupedBackground)
             .foregroundStyle(Theme.ink)
             .navigationTitle("Import").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancel") { showImport = false } } }
@@ -64,6 +78,7 @@ struct ReadView: View {
         }
         .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 0, trailing: 24))
         .listRowSeparatorTint(Theme.separator)
+        .listRowBackground(Theme.surface)
         .alignmentGuide(.listRowSeparatorTrailing) { dimensions in dimensions[.trailing] }
     }
 
@@ -74,24 +89,43 @@ struct ReadView: View {
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                if items.isEmpty { empty } else { list }
+                if items.isEmpty { empty }
+                else if shown.isEmpty { LibrarySearchEmpty(search: $search) }
+                else { list }
             }
             .background(Theme.background)
         .font(Theme.Fonts.body)
             .navigationTitle("Read").navigationBarTitleDisplayMode(.large)
-            .navigationDestination(for: Material.self) { ReaderView(material: $0) }
+            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search reading titles")
+            .navigationDestination(for: Material.self) { material in
+                ReaderView(material: material)
+                    .onAppear { lastOpenedID = material.id.uuidString }
+            }
             .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button { showImport = true } label: { Image(systemName: "plus") }.accessibilityLabel("Import")
+                ToolbarItem(placement: .topBarLeading) {
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }.accessibilityLabel("Settings")
+                }.sharedBackgroundVisibility(.hidden)
+                if !items.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Picker("Sort", selection: $order) {
+                                ForEach(LibraryOrder.allCases, id: \.self) { value in Text(value.label).tag(value) }
+                            }
+                        } label: { Image(systemName: "arrow.up.arrow.down") }
+                        .accessibilityLabel("Sort reading material")
+                    }.sharedBackgroundVisibility(.hidden)
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showImport = true } label: { Image(systemName: "plus") }.accessibilityLabel("Import")
+                }.sharedBackgroundVisibility(.hidden)
             }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showImport) { importSheet }
             .sheet(item: Binding(get: { linkMode.map { ModeBox(mode: $0) } }, set: { if $0 == nil { linkMode = nil } })) { b in
                 LinkSheet(mode: b.mode) { f, title, kind, art in ingestDownloaded(f, title: title, kind: kind, art: art) }
             }
-            .onChange(of: app.jumpMaterial?.id) { _, id in openJump() }
+            .onChange(of: app.jumpMaterial?.id) { _, _ in openJump() }
+            .onChange(of: app.jumpMaterial?.time) { _, _ in openJump() }
             .onAppear { openJump() }
             .fileImporter(isPresented: Binding(get: { importer != nil }, set: { if !$0 { importer = nil } }),
                           allowedContentTypes: importer == .subtitle ? [UTType(filenameExtension: "srt") ?? .plainText, UTType(filenameExtension: "vtt") ?? .plainText, .plainText] : [.movie, .audio, .mpeg4Movie, .mp3]) { r in
@@ -121,85 +155,107 @@ struct ReadView: View {
 
     private var empty: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("No reading material").font(Theme.Fonts.body.weight(.semibold))
-                Button { showImport = true } label: {
-                    HStack(spacing: 16) {
-                        Image(systemName: "plus").font(.system(size: 24)).frame(width: 24)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Add Text").font(Theme.Fonts.body.weight(.semibold))
-                            Text("Import or add a text to start reading.").font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
-                        }
-                        Spacer(minLength: 8)
-                        Image(systemName: "chevron.right").foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-                    .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 0.5) }
-                }.buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Your next read starts here.")
+                    .literary(.title1)
+                    .padding(.top, 20).padding(.bottom, 12)
+                Text("Bring something you want to understand.")
+                    .font(.body).foregroundStyle(Theme.textSecondary)
+                    .padding(.bottom, 32)
+                SourceAction(symbol: "play.rectangle", title: "Video or audio", detail: "Read along with what you hear.") { importer = .media }
+                SourceAction(symbol: "text.alignleft", title: "Subtitle file", detail: "Open a transcript, line by line.") { importer = .subtitle }
+                SourceAction(symbol: "link", title: "Media link", detail: "Open a video or audio link.") { linkMode = .link }
             }
-            .frame(maxWidth: 720, alignment: .leading).padding(.horizontal, 24).padding(.top, 24).frame(maxWidth: .infinity)
+            .padding(.horizontal, 24).padding(.bottom, 32)
+            .frame(maxWidth: 720, alignment: .leading).frame(maxWidth: .infinity)
         }
     }
 
     private var list: some View {
-        let resumed = items.first(where: { $0.lastLine > 0 && !$0.lines.isEmpty })
-        let recent = items.filter { $0.id != resumed?.id }
+        let featuredMaterial = query.isEmpty ? resumed : nil
+        let recent = shown.filter { $0.id != featuredMaterial?.id }
         return List {
-            Section {
-                Text("Continue where you left off or add a new text.")
-                    .font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary)
-                    .listRowInsets(EdgeInsets(top: 4, leading: 24, bottom: 20, trailing: 24))
-                    .listRowSeparator(.hidden)
-            }
-            if let m = resumed {
-                Section("Continue reading") {
-                    NavigationLink(value: m) { materialRow(m, resumed: true) }
-                        .swipeActions { Button("Delete", role: .destructive) { delete(m) } }
+            if let material = featuredMaterial {
+                Section {
+                    Button { path.append(material) } label: { featured(material) }
+                        .accessibilityIdentifier("reading-featured")
+                        .buttonStyle(PressFeedbackStyle())
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Theme.background)
+                        .listRowInsets(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
+                        .swipeActions { Button("Delete", role: .destructive) { delete(material) } }
                 }
             }
-            Section("Recent") {
-                ForEach(recent) { m in
-                    NavigationLink(value: m) { materialRow(m, resumed: false) }
-                }
-                .onDelete { offsets in for i in offsets { delete(recent[i]) } }
-            }
-            Section("Add Text") {
-                Button { showImport = true } label: {
-                    HStack(spacing: 16) {
-                        Image(systemName: "plus").font(.system(size: 24, weight: .regular)).frame(width: 24)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Import or add a text").font(Theme.Fonts.body.weight(.semibold))
-                            Text("Paste text, import a file, or choose from your library.").font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
-                        }
-                        Spacer(minLength: 8)
-                        Image(systemName: "chevron.right").foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
+            if !recent.isEmpty {
+                Section {
+                    ForEach(recent) { material in
+                        NavigationLink(value: material) { materialRow(material) }
+                            .listRowBackground(Theme.background)
+                            .listRowInsets(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
+                            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
                     }
-                    .frame(minHeight: 56, alignment: .leading)
+                    .onDelete { offsets in for index in offsets { delete(recent[index]) } }
+                } header: {
+                    SectionLabel(title: query.isEmpty ? (order == .newest ? "Recent" : "By title") : "Search results")
+                        .textCase(nil)
+                        .listRowInsets(EdgeInsets(top: 16, leading: 24, bottom: 8, trailing: 24))
                 }
             }
         }
         .listStyle(.plain)
+        .listRowInsets(EdgeInsets(top: 16, leading: 24, bottom: 16, trailing: 24))
+        .listRowBackground(Theme.background)
+        .listSectionSpacing(0)
+        .listSectionSeparator(.hidden)
         .frame(maxWidth: 720).frame(maxWidth: .infinity)
-        .environment(\.defaultMinListRowHeight, 56)
-        .contentMargins(.horizontal, 0, for: .scrollContent)
         .scrollContentBackground(.hidden)
     }
 
-    private func materialRow(_ material: Material, resumed: Bool) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: material.isAudio ? "waveform" : "doc.text")
-                .font(.system(size: 20)).frame(width: 24, height: 24)
-                .foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 8) {
-                Text(material.title).font(Theme.Fonts.body.weight(.semibold))
-                Text(Language.find(material.languageCode).displayName).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
-                Text(resumed
-                     ? L10n.format("read.position", Int64(material.lastLine + 1), Int64(material.lines.count))
-                     : (material.lines.isEmpty ? L10n.string("read.needsTranscription") : L10n.format("read.ready", Int64(material.lines.count))))
-                    .font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
+    private func featured(_ material: Material) -> some View {
+        let lines = material.lines
+        let index = min(max(0, material.lastLine), max(0, lines.count - 1))
+        return VStack(alignment: .leading, spacing: 14) {
+            if !lines.isEmpty {
+                Text(lines[index].text)
+                    .literary(.title1, .original)
+                    .lineSpacing(8).lineLimit(4)
+                    .foregroundStyle(Theme.ink)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(material.title).font(.headline).foregroundStyle(Theme.ink)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    if !lines.isEmpty {
+                        // A shiori: the bookmark marks where the learner stopped reading.
+                        Image(systemName: "bookmark.fill").foregroundStyle(Theme.vermilion).accessibilityHidden(true)
+                    }
+                    Text(Language.find(material.languageCode).displayName + " · " + (lines.isEmpty ? L10n.string("read.needsTranscription") : L10n.format("read.position", Int64(index + 1), Int64(lines.count))))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .font(.caption)
+            }
+            HStack(spacing: 6) {
+                Text(material.lastLine > 0 ? "Continue reading" : "Start reading")
+                Image(systemName: "arrow.right").font(.caption.weight(.semibold))
+            }
+            .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.accent)
+            .frame(minHeight: 44, alignment: .leading)
         }
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    private func materialRow(_ material: Material) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(material.title).font(.body.weight(.semibold)).foregroundStyle(Theme.ink)
+            if let first = material.lines.first {
+                Text(first.text).literary(.body, material.languageCode == "ja" ? .original : .interface).foregroundStyle(Theme.textSecondary).lineLimit(2)
+            }
+            Label(material.lines.isEmpty ? L10n.string("read.needsTranscription") : Language.find(material.languageCode).displayName,
+                  systemImage: material.isAudio ? "waveform" : "text.alignleft")
+                .font(.caption).foregroundStyle(Theme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func progressCard(_ t: (title: String, p: Double)) -> some View {
@@ -209,11 +265,12 @@ struct ReadView: View {
             Button("Cancel", role: .cancel) { imports.cancel() }
         }
         .padding(24).frame(maxWidth: 320)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 28))
     }
 
     private func delete(_ m: Material) {
         if let f = m.mediaFile { try? FileManager.default.removeItem(at: Files.url(f)) }
+        if lastOpenedID == m.id.uuidString { lastOpenedID = "" }
         ctx.delete(m)
     }
 

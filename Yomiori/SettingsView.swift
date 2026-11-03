@@ -17,15 +17,27 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 Section {
+                    HStack(spacing: 16) {
+                        Image("ReadingArtwork").resizable().scaledToFill()
+                            .frame(width: 48, height: 48).clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.1), lineWidth: 1) }
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Yomiori").font(.headline)
+                            Text("よみおり").font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
+                        }
+                    }.padding(.vertical, 8)
+                }.listRowBackground(Theme.surface)
+                Section {
                     NavigationLink { LanguagesSettingsView() } label: {
-                        Text("Languages").frame(minHeight: 44, alignment: .leading)
+                        Label("Languages", systemImage: "character.bubble")
                     }
                 }
-                .listRowInsets(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)).listRowBackground(Theme.surface)
                 Section {
-                    NavigationLink { AISettingsView() } label: { Text("AI service").frame(minHeight: 44) }
+                    NavigationLink { AISettingsView() } label: { Label("AI service", systemImage: "sparkles") }
                 }
-                .listRowInsets(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)).listRowBackground(Theme.surface)
                 Section {
                     Toggle("Japanese definitions", isOn: $jaDefs)
                     Toggle("English definitions", isOn: $enDefs)
@@ -34,22 +46,22 @@ struct SettingsView: View {
                     NavigationLink("nav.immersion") { ImmersionView() }
                     Button("Export to Anki") { exporting = true }
                 } header: { Text("Learning").font(Theme.Fonts.meta.weight(.semibold)) }
-                .listRowInsets(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)).listRowBackground(Theme.surface)
                 Section {
                     Button("Clear all data", role: .destructive) { confirm = true }.foregroundStyle(Theme.errorText)
                 }
-                .listRowInsets(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)).listRowBackground(Theme.surface)
                 #if DEBUG
                 Section("Developer tools") { Button("Load sample content") { DebugSeed.run(ctx); dismiss() }; Button("Run Coach test") { dismiss(); DispatchQueue.main.asyncAfter(deadline: .now() + 1) { NotificationCenter.default.post(name: Notification.Name("coachtest"), object: nil) } } }
                 #endif
                 Section { NavigationLink("Credits") { WordListCreditsView() } }
-                    .listRowInsets(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
+                    .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)).listRowBackground(Theme.surface)
             }
-            .listStyle(.plain).listSectionSpacing(24).scrollContentBackground(.hidden).background(Theme.background).tint(Theme.ink).font(Theme.Fonts.body)
+            .listStyle(.insetGrouped).scrollContentBackground(.hidden).background(Theme.groupedBackground).tint(Theme.accent).font(Theme.Fonts.body)
             .frame(maxWidth: 720).frame(maxWidth: .infinity)
-            .environment(\.defaultMinListRowHeight, 56)
-            .listRowInsets(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
-            .contentMargins(.horizontal, 0, for: .scrollContent)
+            .environment(\.defaultMinListRowHeight, 44)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            .listRowBackground(Theme.surface)
             .sheet(isPresented: $exporting) { ExportSheet().presentationDetents([.medium, .large]) }
             .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Done") { dismiss() } } }

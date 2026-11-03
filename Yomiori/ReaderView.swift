@@ -7,10 +7,15 @@ struct ReaderView: View {
     @Bindable var material: Material
     @Environment(AppState.self) private var app
     @Environment(\.modelContext) private var ctx
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title2) private var focusSize: CGFloat = 28
     @Query private var savedWords: [DictEntry]
     @State private var player = PlayerModel()
-    @State private var showTranslation = false
+    @State private var translationMode = ReaderTranslation.off
+    @State private var revealed = false
+    @State private var shownIndex: Int?
+    @State private var forward = true
+    @State private var manualSteps = 0
     @State private var furigana = true
     @State private var wordSheet: WordTarget?
     @State private var translation = SubtitleTranslation()
@@ -29,11 +34,19 @@ struct ReaderView: View {
         _material = Bindable(material)
         let id = material.id.uuidString
         _savedWords = Query(filter: #Predicate<DictEntry> { $0.sourceID == id })
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let flag = arguments.firstIndex(of: "--preview-translation"), flag + 1 < arguments.count,
+           let mode = ReaderTranslation(rawValue: arguments[flag + 1]) { _translationMode = State(initialValue: mode) }
+        #endif
     }
 
     private var lines: [SubLine] { material.lines }
     private var current: Int? { Subtitles.index(at: player.time, in: lines) }
     private var index: Int { min(max(current ?? 0, 0), max(lines.count - 1, 0)) }
+    /// The line the focus stack shows; it follows `index` inside an animated transaction.
+    private var displayIndex: Int { min(max(shownIndex ?? index, 0), max(lines.count - 1, 0)) }
+    private var showTranslation: Bool { translationMode != .off }
     private var savedTerms: Set<String> { Set(savedWords.filter { $0.kind != "highlight" }.map(\.term)) }
     private var hasMedia: Bool { material.mediaFile != nil }
 
@@ -49,10 +62,25 @@ struct ReaderView: View {
         .font(Theme.Fonts.body)
         .navigationTitle(material.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 if hasMedia { speedMenu }
                 readingOptions
+            }
+            if !hasMedia && !lines.isEmpty {
+                ToolbarItem(placement: .bottomBar) {
+                    HStack(spacing: 16) {
+                        Button { go(index - 1) } label: { Image(systemName: "chevron.left") }
+                            .disabled(index == 0).accessibilityLabel("Previous line")
+                        Text(L10n.format("read.position", Int64(index + 1), Int64(lines.count)))
+                            .font(.footnote.monospacedDigit()).foregroundStyle(.secondary)
+                            .contentTransition(.numericText(value: Double(index)))
+                            .animation(reduceMotion ? nil : .snappy, value: index)
+                        Button { go(index + 1) } label: { Image(systemName: "chevron.right") }
+                            .disabled(index == lines.count - 1).accessibilityLabel("Next line")
+                    }
+                }
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { if hasMedia { controls } }
@@ -86,11 +114,38 @@ struct ReaderView: View {
         .onAppear {
             if let f = material.mediaFile { player.load(Files.url(f)) }
             if material.lastLine > 0, material.lastLine < lines.count { player.seek(lines[material.lastLine].start) }
+            if app.jumpMaterial?.id == material.id.uuidString { app.jumpMaterial = nil }
+            shownIndex = index
         }
+        #if DEBUG
+        .task {
+            guard ProcessInfo.processInfo.arguments.contains("--preview-reader-demo"), !lines.isEmpty else { return }
+            if hasMedia { try? await Task.sleep(for: .seconds(1)); player.toggle(); return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2.5))
+                go(index + 1 < lines.count ? index + 1 : 0)
+            }
+        }
+        #endif
+        .onChange(of: index) { old, new in
+            // Adjacent steps animate so reading order stays legible; jumps cut cleanly.
+            forward = new >= old
+            var transaction = Transaction(animation: abs(new - old) == 1 ? ReaderMotion.advance(reduceMotion: reduceMotion) : nil)
+            transaction.disablesAnimations = abs(new - old) != 1
+            withTransaction(transaction) { shownIndex = new; revealed = false }
+        }
+        .sensoryFeedback(.selection, trigger: manualSteps)
+        .sensoryFeedback(trigger: revealed) { _, isRevealed in isRevealed ? .impact(weight: .light, intensity: 0.6) : nil }
         .onDisappear {
             if let c = current { material.lastLine = c }
             translation.cancel()
             player.stop(); app.jumpMaterial = nil
+        }
+        .onChange(of: app.jumpMaterial?.time) { _, _ in
+            guard let jump = app.jumpMaterial, jump.id == material.id.uuidString,
+                  let position = Subtitles.index(at: jump.time, in: lines) else { return }
+            player.seek(lines[position].start)
+            app.jumpMaterial = nil
         }
         .onChange(of: translation.error) { _, value in banner = value }
         .onChange(of: nativeLanguage) { _, _ in translation.cancel(); if showTranslation { translateAll() } }
@@ -119,14 +174,18 @@ struct ReaderView: View {
                 Text("Japanese").tag("ja"); Text("English").tag("en")
             }
             if material.languageCode == "ja" {
-                Button { furigana.toggle() } label: {
+                Button { withAnimation(ReaderMotion.veil(reduceMotion: reduceMotion)) { furigana.toggle() } } label: {
                     Label(furigana ? L10n.string("read.furiganaHide") : L10n.string("read.furiganaShow"), systemImage: "textformat.size.ja")
                 }
             }
-            Toggle("Translation", isOn: Binding(get: { showTranslation }, set: {
-                showTranslation = $0
-                if $0 { translateAll() }
-            }))
+            Picker(selection: Binding(get: { translationMode }, set: { mode in
+                let starting = translationMode == .off && mode != .off
+                withAnimation(ReaderMotion.veil(reduceMotion: reduceMotion)) { translationMode = mode; revealed = false }
+                if starting { translateAll() }
+            })) {
+                ForEach(ReaderTranslation.allCases) { mode in Text(mode.label).tag(mode) }
+            } label: { Label("Translation", systemImage: "character.bubble") }
+            .pickerStyle(.menu)
             if !lines.isEmpty {
                 ShareLink(item: exportFile(), preview: SharePreview("\(material.title).srt")) {
                     Label("Export subtitles", systemImage: "square.and.arrow.up")
@@ -172,10 +231,16 @@ struct ReaderView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     ReaderStudyLayout(stageHeight: stageHeight) {
+                        let shown = displayIndex
                         VStack(alignment: .leading, spacing: 24) {
-                            if index > 0 { neighbour(index - 1) }
-                            currentLine(index)
-                            if index + 1 < lines.count { neighbour(index + 1) }
+                            // Each line keeps its identity as its role changes, so it moves with the reading flow.
+                            ForEach(Array(max(0, shown - 1)...min(lines.count - 1, shown + 1)), id: \.self) { i in
+                                if i == shown {
+                                    currentLine(i).transition(ReaderMotion.focus(forward: forward, reduceMotion: reduceMotion))
+                                } else {
+                                    neighbour(i).transition(ReaderMotion.context(forward: forward, reduceMotion: reduceMotion))
+                                }
+                            }
                         }
                         .frame(maxWidth: 640, alignment: .leading)
                         .onGeometryChange(for: Bool.self) { group in
@@ -188,7 +253,7 @@ struct ReaderView: View {
                     .padding(.horizontal, 24)
                 }
                 .defaultScrollAnchor(.top)
-                .onChange(of: index) { _, _ in
+                .onChange(of: shownIndex) { _, _ in
                     if stageOverflows { revealCurrent(using: proxy) }
                 }
             }
@@ -196,20 +261,21 @@ struct ReaderView: View {
     }
 
     private func revealCurrent(using proxy: ScrollViewProxy) {
-        guard lines.indices.contains(index) else { return }
+        guard lines.indices.contains(displayIndex) else { return }
         var transaction = Transaction()
         transaction.disablesAnimations = true
-        withTransaction(transaction) { proxy.scrollTo(lines[index].id, anchor: .top) }
+        withTransaction(transaction) { proxy.scrollTo(lines[displayIndex].id, anchor: .top) }
     }
 
     private func go(_ i: Int) {
         guard lines.indices.contains(i) else { return }
+        manualSteps += 1
         player.seek(lines[i].start)
     }
 
     private func neighbour(_ i: Int) -> some View {
         let l = lines[i]
-        return Text(l.text).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary)
+        return Text(l.text).literary(.body, material.languageCode == "ja" ? .original : .interface).foregroundStyle(Theme.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             .contentShape(Rectangle())
@@ -229,15 +295,25 @@ struct ReaderView: View {
                 wordSheet = target(w, line)
             }
             .foregroundStyle(Theme.ink)
+            if hasMedia { SpokenStroke(player: player, start: line.start, end: line.end).padding(.top, -12) }
             if showTranslation, line.translationSource == material.languageCode, line.translationTarget == nativeLanguage, let t = line.translation {
-                Text(t).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary)
-            } else if showTranslation && translation.running { ProgressView().accessibilityLabel("Translation") }
+                TranslationGloss(text: t, veiled: translationMode == .veiled && !revealed) {
+                    guard translationMode == .veiled else { return }
+                    withAnimation(ReaderMotion.veil(reduceMotion: reduceMotion)) { revealed.toggle() }
+                }
+                .transition(.opacity)
+            } else if showTranslation && translation.running {
+                Label { Text("read.translation.loading") } icon: { ProgressView() }
+                    .font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
+                    .transition(.opacity)
+            }
             if let n = line.note { Label(n, systemImage: "note.text").font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isSelected)
         .accessibilityValue(L10n.format("read.position", Int64(i + 1), Int64(lines.count)))
+        .accessibilityIdentifier("reader-current-line")
         .id(line.id)
     }
 
@@ -260,10 +336,21 @@ struct ReaderView: View {
                 }
             ZStack {
                 Button { player.toggle() } label: {
-                    Image(systemName: player.playing ? "pause.fill" : "play.fill")
-                        .font(.system(size: 24)).foregroundStyle(Theme.background)
-                        .frame(width: 56, height: 56).background(Theme.ink, in: Circle())
+                    ZStack {
+                        Image(systemName: "play.fill").offset(x: 1)
+                            .opacity(player.playing ? 0 : 1)
+                            .scaleEffect(player.playing ? 0.25 : 1)
+                            .blur(radius: player.playing && !reduceMotion ? 4 : 0)
+                        Image(systemName: "pause.fill")
+                            .opacity(player.playing ? 1 : 0)
+                            .scaleEffect(player.playing ? 1 : 0.25)
+                            .blur(radius: player.playing || reduceMotion ? 0 : 4)
+                    }
+                    .animation(reduceMotion ? nil : .spring(duration: 0.3, bounce: 0), value: player.playing)
+                    .font(.system(.title2, weight: .semibold)).foregroundStyle(Theme.onAccent)
+                    .frame(width: 56, height: 56).background(Theme.accent, in: Circle())
                 }
+                .buttonStyle(PressFeedbackStyle())
                 .accessibilityLabel(player.playing ? L10n.string("read.pause") : L10n.string("read.play"))
                 Button { player.seek(player.time - 10) } label: {
                     Image(systemName: "gobackward.10").font(.system(size: 20)).frame(width: 44, height: 44)
@@ -277,10 +364,11 @@ struct ReaderView: View {
             .frame(maxWidth: .infinity, minHeight: 56)
         }
         .foregroundStyle(Theme.ink)
-        .padding(.horizontal, 24).padding(.vertical, 12)
-        .frame(maxWidth: 720, minHeight: 88)
+        .padding(20)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 32))
+        .frame(maxWidth: 680, minHeight: 88)
+        .padding(.horizontal, 20).padding(.vertical, 12)
         .frame(maxWidth: .infinity)
-        .background(Theme.background)
     }
 
     private func target(_ w: String, _ line: SubLine, kind: String = "word") -> WordTarget {

@@ -327,7 +327,7 @@ struct AtlasWordDetailView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(verbatim: word.w).font(Theme.Fonts.focus.weight(.semibold))
+                    Text(verbatim: word.w).literary(.title1, bold: true, .original)
                     if !word.reading.isEmpty { Text(verbatim: word.reading).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
                     if !word.uk.isEmpty { Text(L10n.format("UK %@", word.uk)).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
                     if !word.us.isEmpty { Text(L10n.format("US %@", word.us)).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
@@ -565,11 +565,7 @@ extension View {
     func wordListRows() -> some View {
         self
             .font(Theme.Fonts.body)
-            .listRowBackground(
-                Theme.background.overlay(alignment: .bottom) {
-                    Rectangle().fill(Theme.separator).frame(height: 0.5).padding(.horizontal, 24)
-                }
-            )
+            .listRowBackground(Theme.surface)
             .listRowInsets(EdgeInsets(top: 16, leading: 24, bottom: 16, trailing: 24))
             .listRowSeparator(.hidden)
     }

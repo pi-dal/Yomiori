@@ -2,6 +2,52 @@
 
 2026-10-29：用户已授权全局改名并发布 TestFlight，发布操作使用 `asc`。
 
+## 最新发布：1.0 (4)，和纸墨色与双语阅读
+
+2026-11-03：用户授权「再发个版，我更新了一些，顺便 commit and push」。使用 `asc-release-flow` 上传、分发和提交 Beta 审核，使用 `asc-submission-health` 回读状态。
+
+- 版本 **1.0 (4)**；Build / Upload / Beta Review ID：`af7ae4fc-fa5a-465e-87ef-bad2ebf155b4`。
+- Apple 最终回读：`processingState=VALID`、`betaReviewState=APPROVED`、内部和外部 `IN_BETA_TESTING`、`autoNotifyEnabled=true`、`usesNonExemptEncryption=false`。现有内部组保留全部构建访问权限，外部邮件测试组已显式关联；未创建新组。
+- 包含和纸／墨色／抹茶配色、明朝体与衬线阅读字体、中文界面字体回退、阅读切行动效、音视频句内进度，以及关闭／点按显示／始终显示三种译文模式；同时包含此前未提交的书库查找和原生 PDF 阅读功能。
+- 中英文 What to Test 均已写入并回读。发布前 **54 项单元测试 + 8 项界面／PDF 测试全部通过**，含两项实际深色模式复测。新增译文揭示／再次隐藏／切行重置的 UI 回归测试。
+- 正式 Release arm64 归档、导出、归档 app 和解包 IPA 严格签名校验通过，两个隐私清单齐全；临时签名钥匙串已清理，原搜索列表已恢复。
+- 产物及 Apple 回读：`/tmp/yomiori-testflight-4/`。IPA SHA-256：`fae955272a1b6ea18a24d23b12ca2130489f739b205f754b7ae9aaebdc85887f`。
+- 监控：`asc builds build-beta-detail view --build-id af7ae4fc-fa5a-465e-87ef-bad2ebf155b4 --output table`。
+- 验证范围与截图：[1.0 (4) 验收](acceptance/testflight-4.md)。此次为 TestFlight 发布，未提交正式 App Store 版本。
+
+## 历史发布：1.0 (3)，内容书库与阅读恢复修复
+
+2026-11-01：用户授权「那现在发个版」，使用 `asc-release-flow` 执行本次 TestFlight 发布，并按 `asc-submission-health` 回读审核状态。
+
+- 版本 **1.0 (3)**；Build / Upload / Beta Review ID：`dbdff6d8-f98c-40f2-a42f-c7355869f837`。
+- Apple 最终回读：`processingState = VALID`、`internalBuildState = IN_BETA_TESTING`、`externalBuildState = IN_BETA_TESTING`、`betaReviewState = APPROVED`、`autoNotifyEnabled = true`、`usesNonExemptEncryption = false`。
+- 两个现有组的完整成员关系已回读：`Internal Testers` 有全部构建访问权限，`Yomiori Email Testers` 已显式关联。内部组不接受显式 add 请求（HTTP 422）；保留其自动访问配置，外部组单独关联并提交审核成功。
+- `en-US` 和 `zh-Hans` What to Test 已创建并回读确认；涵盖内容优先的新书库、标题搜索/排序、纯文本行导航、PDF 恢复位置和来源跳转修复。未创建新测试组，未更改公开链接配置。
+- 发布前完整单元测试 **54/54，12 个测试组通过**：`/tmp/yomiori-testflight-3/UnitTests.xcresult`。此前界面/PDF 验证见 [阅读恢复验收](acceptance/reading-verification.md)、[书库查找验收](acceptance/library-discovery.md)。
+- 正式 arm64 Release 归档及导出成功；归档 app 与解包 IPA 均通过 `codesign --verify --deep --strict`，application-identifier 为 `6Y2YB464VU.com.pidal.yomiori`，get-task-allow=false，含两个隐私清单。临时签名钥匙串已清理，搜索列表恢复。
+- 归档：`/tmp/yomiori-testflight-3/Yomiori.xcarchive`；IPA：`/tmp/yomiori-testflight-3/export/Yomiori.ipa`。
+- IPA SHA-256：`256a43321317982fbc4e1a3f3b390ef8a6f7c92fb1e0f9e05f3cf3fdbe2cd4c3`。
+- 发布日志、测试说明、签名清单及 Apple 回读 JSON 保存在 `/tmp/yomiori-testflight-3/`。上传先执行 dry run；群组分配先预览；外部审核使用 `--submit --confirm`。
+- 监控：`asc builds build-beta-detail view --build-id dbdff6d8-f98c-40f2-a42f-c7355869f837 --output table`。
+- 此次为 TestFlight 发布，未提交正式 App Store 版本。代码改动保留在当前工作区，未自动创建 Git 提交。
+
+## 历史发布：1.0 (2)，Liquid Glass 与新图标
+
+2026-10-29：用户授权「发个版」，沿用现有 TestFlight 配置发布本次界面改动。
+
+- 版本 **1.0 (2)**；Build / Upload ID：`50c1b165-669a-4195-bd59-7f3b956cb429`。
+- Apple 回读：`processingState = VALID`、`internalBuildState = IN_BETA_TESTING`、`usesNonExemptEncryption = false`。
+- 两个现有测试组均已关联，内部组拥有全部构建访问权限；外部组保留邮件测试配置和关闭公开链接。
+- 新版外部送审最初被旧构建 1 的待审记录阻挡。通过 App Store Connect 的 **Remove from Review** 撤回构建 1 的旧审核，再使用 `asc testflight review submit` 成功提交构建 2。
+- 新审核提交时间：**2026-10-29 15:37:48 UTC**；`betaReviewState = WAITING_FOR_REVIEW`，`externalBuildState = WAITING_FOR_BETA_REVIEW`。`autoNotifyEnabled = true`。
+- `en-US` 与 `zh-Hans` What to Test 已更新并回读确认，重点为 Liquid Glass、浅深色模式、大字号、输入键盘和原有学习／导出流程。
+- 签名归档：`/tmp/yomiori-testflight-2/Yomiori.xcarchive`；IPA：`/tmp/yomiori-testflight-2/export/Yomiori.ipa`。
+- IPA SHA-256：`21a4a0858bdfcfd9695016ba19bf4ef672e18aedd3a724ce93b5b4885443cbfe`。
+- 签名严格验证、arm64 Release archive / export 成功；构建及上传日志在 `/tmp/yomiori-testflight-2/`，临时签名钥匙串已清理并恢复原搜索列表。
+- 本次界面验收：48 项单元／集成测试 + 7 项 UI 测试通过，后续专项复测通过，详见 [Liquid Glass 验收](acceptance/liquid-glass.md)。
+
+下面记录为构建 1 的历史发布详情，其待审记录已被本次新版审核替代。
+
 ## 应用身份
 
 - 名称：**Yomiori（よみおり）**，取「読み」（阅读）与「織り」（编织）意象的自造品牌名。

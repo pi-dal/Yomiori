@@ -42,7 +42,7 @@ struct DictionaryView: View {
             VStack(spacing: 0) {
                 if filter != "Review" {
                     DictionarySearchField(text: $search, prompt: filter == "Cards" ? "Search cards" : "dictionary.search")
-                        .padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 16)
+                        .padding(.horizontal, 24).padding(.top, 8).padding(.bottom, 8)
                 }
                 TextTabs(items: [("Words", "nav.words"), ("Cards", "nav.cards"), ("Lists", "nav.lists"), ("Review", "nav.review")], selection: $filter)
                 if filter == "Lists" {
@@ -50,18 +50,9 @@ struct DictionaryView: View {
                 } else if filter == "Review" {
                     List { banner }.listStyle(.plain).scrollContentBackground(.hidden).padding(.top, 24)
                 } else if filter == "Words" && all.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("dictionary.empty").font(Theme.Fonts.body.weight(.semibold))
-                        Text("Save words while reading to build your dictionary.")
-                            .font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary)
-                        Button { app.tab = .read } label: {
-                            Label("Open reading material", systemImage: "book")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 16).frame(minHeight: 48)
-                                .background(Theme.controlFill, in: RoundedRectangle(cornerRadius: 12))
-                        }
-                        .buttonStyle(.plain)
-                    }.padding(.horizontal, 24).padding(.top, 24).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    EmptyState(symbol: "character.book.closed", title: "dictionary.empty",
+                               message: "Save words while reading to build your dictionary.",
+                               action: ("Open reading material", { app.tab = .read }))
                 } else if filter == "Words" && search.isEmpty && !showAllRecent {
                     recentWords
                 } else {
@@ -85,32 +76,36 @@ struct DictionaryView: View {
                         } else {
                             ForEach(shown) { e in
                                 Button { selected = e } label: { row(e) }
-                                    .listRowInsets(EdgeInsets(top: 16, leading: 24, bottom: 16, trailing: 24))
-                                    .listRowBackground(Theme.background).listRowSeparator(.hidden)
-                                    .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 0.5) }
+                                    .listRowInsets(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
+                                    .listRowBackground(Theme.background).listRowSeparator(.visible, edges: .bottom)
+                                    .listRowSeparator(.hidden, edges: .top)
+                                    .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
                             }.onDelete { i in for k in i { remove(shown[k]) } }
                         }
                     }.listStyle(.plain).scrollContentBackground(.hidden)
-                    .padding(.top, 24)
+                    .padding(.top, 8)
                 }
             }
             .frame(maxWidth: 720).frame(maxWidth: .infinity)
             .background(Theme.background)
             .font(Theme.Fonts.body).foregroundStyle(Theme.ink)
-            .navigationTitle("Dictionary").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Dictionary").navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink { WordListsView() } label: { Image(systemName: "plus").font(.system(size: 20)).frame(width: 44, height: 44) }.accessibilityLabel("Add word list")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink { ImmersionView() } label: { Image(systemName: "chart.bar").font(.system(size: 20)).frame(width: 44, height: 44) }.accessibilityLabel("nav.immersion")
-                }
-                if !all.isEmpty {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Menu { Picker("Sort", selection: $sort) { Text("dictionary.newest").tag("Newest"); Text("dictionary.alpha").tag("A to Z") } } label: { Image(systemName: "arrow.up.arrow.down").font(.system(size: 20)).frame(width: 44, height: 44) }
-                            .accessibilityLabel("Sort")
-                    }
-                }
+                    NavigationLink { WordListsView() } label: { Image(systemName: "plus") }.accessibilityLabel("Add word list")
+                }.sharedBackgroundVisibility(.hidden)
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        NavigationLink { ImmersionView() } label: { Label("nav.immersion", systemImage: "chart.bar") }
+                        if !all.isEmpty {
+                            Picker("Sort", selection: $sort) {
+                                Text("dictionary.newest").tag("Newest")
+                                Text("dictionary.alpha").tag("A to Z")
+                            }
+                        }
+                    } label: { Image(systemName: "ellipsis") }
+                        .accessibilityLabel("Dictionary options")
+                }.sharedBackgroundVisibility(.hidden)
             }
             .fullScreenCover(isPresented: $reviewing) { ReviewView() }
             .sheet(item: $selected) { EntryDetail(entry: $0).presentationDetents([.large]) }
@@ -119,21 +114,17 @@ struct DictionaryView: View {
 
     private var recentWords: some View {
         List {
-            Section {
-                HStack {
-                    Text("Recent words").font(Theme.Fonts.body.weight(.semibold))
-                    Spacer()
-                    Button("See all") { showAllRecent = true }
-                        .font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary)
-                }
-                .listRowInsets(EdgeInsets(top: 16, leading: 24, bottom: 8, trailing: 24))
-                .listRowSeparator(.hidden)
-            }
             ForEach(Array(shown.prefix(8))) { e in
                 Button { selected = e } label: { row(e) }
                     .listRowInsets(EdgeInsets(top: 12, leading: 24, bottom: 12, trailing: 24))
-                    .listRowBackground(Theme.background).listRowSeparator(.hidden)
-                    .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 0.5) }
+                    .listRowBackground(Theme.background).listRowSeparator(.visible, edges: .bottom)
+                    .listRowSeparator(.hidden, edges: .top)
+                    .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+            }
+            if shown.count > 8 {
+                Button("See all") { showAllRecent = true }
+                    .font(.subheadline.weight(.semibold)).frame(minHeight: 44)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 24, bottom: 8, trailing: 24))
             }
         }
         .listStyle(.plain).scrollContentBackground(.hidden).padding(.top, 8)
@@ -175,12 +166,8 @@ struct DictionaryView: View {
     @ViewBuilder private var reviewButton: some View {
         if dueCount > 0 {
             Button { reviewing = true } label: {
-                Text("Start review").font(Theme.Fonts.body.weight(.semibold))
-                    .foregroundStyle(Theme.background)
-                    .padding(.horizontal, 12).padding(.vertical, 12)
-                    .frame(minHeight: 48)
-                    .background(Theme.ink, in: RoundedRectangle(cornerRadius: 10))
-            }.buttonStyle(.plain)
+                Label("Start review", systemImage: "play.fill")
+            }.buttonStyle(CompactActionStyle())
         }
     }
     private func cardRow(_ c: Card) -> some View {
@@ -224,16 +211,24 @@ struct DictionaryView: View {
             if e.kind == "highlight" {
                 Text(e.term).font(Theme.Fonts.body).foregroundStyle(Theme.ink).padding(.vertical, 4).background(Theme.highlight)
             } else {
-                Text(e.term).font(Theme.Fonts.body.weight(.semibold)).foregroundStyle(Theme.ink)
-                if !e.reading.isEmpty { Text(e.reading).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
-                if !e.meaning.isEmpty { Text(e.meaning).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary) }
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(e.term).literary(.title2, bold: true, .original).foregroundStyle(Theme.ink)
+                        if !e.reading.isEmpty { Text(e.reading).font(.caption).foregroundStyle(Theme.textSecondary) }
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(e.term).literary(.title2, bold: true, .original).foregroundStyle(Theme.ink)
+                        if !e.reading.isEmpty { Text(e.reading).font(.caption).foregroundStyle(Theme.textSecondary) }
+                    }
+                }
+                if !e.meaning.isEmpty { Text(e.meaning).font(.subheadline).foregroundStyle(Theme.ink) }
             }
             if !e.note.isEmpty { Text(e.note).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary) }
-            FlowLayout(lineSpacing: 8) {
-                Text(e.sourceName.isEmpty ? L10n.string("nav.coach") : e.sourceName)
-                if e.sourceKind == "subtitle" { Text(Subtitles.stamp(e.sourcePos)) }
+            HStack(spacing: 8) {
+                Text(e.sourceName.isEmpty ? L10n.string("nav.coach") : e.sourceName).lineLimit(1)
+                if e.sourceKind == "subtitle" && e.sourcePos > 0 { Text(Subtitles.stamp(e.sourcePos)).monospacedDigit() }
                 if e.sourceKind == "pdf" { Text(L10n.format("Page %lld", Int64(e.sourcePos) + 1)) }
-            }.font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
+            }.font(.caption2).foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -266,7 +261,7 @@ struct EntryDetail: View {
                 Group {
                     Section {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(entry.term).font(Theme.Fonts.focus.weight(.semibold))
+                            Text(entry.term).literary(.title1, bold: true, .original)
                             if !entry.reading.isEmpty { Text(entry.reading).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
                         }
                     }
@@ -386,20 +381,20 @@ struct DictionarySearchField: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass").font(.system(size: 20))
+            Image(systemName: "magnifyingglass").font(.subheadline)
                 .foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
             TextField("", text: $text, prompt: Text(prompt).foregroundStyle(Theme.textSecondary))
-                .font(Theme.Fonts.body).foregroundStyle(Theme.ink).padding(.vertical, 12)
+                .font(.subheadline).foregroundStyle(Theme.ink).padding(.vertical, 10)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
                 .accessibilityLabel(Text(prompt))
             if !text.isEmpty {
                 Button { text = "" } label: {
-                    Image(systemName: "xmark").font(.system(size: 20)).frame(width: 44, height: 44)
+                    Image(systemName: "xmark.circle.fill").font(.subheadline).frame(width: 44, height: 44)
                 }.buttonStyle(.plain).accessibilityLabel("Clear filters")
             }
         }
         .padding(.horizontal, 12)
-        .frame(minHeight: 48)
-        .background(Theme.controlFill, in: RoundedRectangle(cornerRadius: 8))
+        .frame(minHeight: 44)
+        .background(Theme.controlFill, in: RoundedRectangle(cornerRadius: 10))
     }
 }

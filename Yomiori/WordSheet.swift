@@ -24,7 +24,7 @@ struct WordSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(target.word).font(Theme.Fonts.focus.weight(.semibold))
+                        Text(target.word).literary(.title1, bold: true, .original)
                             .accessibilityAddTraits(.isHeader)
                         let sub = [Words.reading(target.word), entry.flatMap { $0.pos.isEmpty ? nil : $0.pos }].compactMap { $0 }.joined(separator: "\n")
                         if !sub.isEmpty { Text(sub).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
