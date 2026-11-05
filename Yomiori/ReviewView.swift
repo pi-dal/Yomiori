@@ -5,6 +5,9 @@ struct ReviewView: View {
     @Query private var allCards: [Card]
     @Environment(\.dismiss) private var dismiss
     @Environment(AppState.self) private var app
+    @Environment(\.modelContext) private var context
+    @Environment(\.studyDefaults) private var defaults
+    @State private var saveError: String?
     @AppStorage("reviewLimit") private var limit = 30
     @AppStorage("jaDefs") private var jaDefs = false
     @AppStorage("enDefs") private var enDefs = true
@@ -17,7 +20,9 @@ struct ReviewView: View {
     @State private var clip = ClipPlayer()
     @State private var remoteAudio = AtlasPronunciationPlayer()
 
-    static func due(_ cards: [Card], limit: Int) -> [Card] { Array(cards.filter { $0.due <= Date() }.sorted { $0.due < $1.due }.prefix(max(0, min(limit, 100)))) }
+    static func due(_ cards: [Card], limit: Int, newLimit: Int = 5) -> [Card] {
+        StudyPlan(cards: cards, reviewLimit: limit, newLimit: newLimit).queue
+    }
 
     var body: some View {
         NavigationStack {
@@ -47,7 +52,16 @@ struct ReviewView: View {
                     }.accessibilityLabel("Close")
                 }
             }
-            .onAppear { if !started { queue = Self.due(allCards, limit: limit); total = queue.count; started = true; if let c = queue.first { autoplay(c) } } }
+            .onAppear {
+                if !started {
+                    queue = DailyStudy.plan(allCards, defaults: defaults).queue
+                    total = queue.count; started = true
+                    if let c = queue.first { autoplay(c) }
+                }
+            }
+            .alert("Couldn't save", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: { Text(saveError ?? "") }
             .onDisappear { clip.stop(); remoteAudio.stop() }
             .confirmationDialog("review.stopTitle", isPresented: $confirmExit, titleVisibility: .visible) {
                 Button("review.stop", role: .destructive) { dismiss() }; Button("review.continue", role: .cancel) {}
@@ -66,7 +80,7 @@ struct ReviewView: View {
                     Button("Show answer") { showBack = true }.buttonStyle(InkButtonStyle())
                 }
             } else {
-                Button("Close") { dismiss() }.buttonStyle(InkButtonStyle())
+                Button("Close") { dismiss() }.buttonStyle(PaperActionStyle(expanded: true)).accessibilityIdentifier("review.finish")
             }
         }
         .frame(maxWidth: 640)
@@ -101,7 +115,11 @@ struct ReviewView: View {
                     if !translation.isEmpty && translation != selectedMeaning && translation != meaning { answerText(translation).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary) }
                 }.padding(.top, 8)
                 if !c.sourceID.isEmpty {
-                    Button("Go to source") { dismiss(); app.jumpMaterial = (c.sourceID, c.sourcePos); app.tab = .read }.font(Theme.Fonts.meta).frame(minHeight: 44)
+                    Button("Go to source") {
+                        dismiss(); app.showStudy = false
+                        if c.sourceKind == "pdf" { app.jumpDoc = (c.sourceID, Int(c.sourcePos)); app.tab = .documents }
+                        else { app.jumpMaterial = (c.sourceID, c.sourcePos); app.tab = .read }
+                    }.font(Theme.Fonts.meta).frame(minHeight: 44)
                 }
             }
             if c.audioFile != nil {
@@ -143,11 +161,16 @@ struct ReviewView: View {
     private func rate(_ c: Card, _ r: Rating) {
         guard showBack, queue.first?.id == c.id else { return }
         clip.stop(); remoteAudio.stop()
-        Scheduler.apply(c, r)
+        do { try DailyStudy.rate(c, rating: r, context: context) }
+        catch { saveError = L10n.string("study.saveError"); return }
         queue.removeFirst()
-        if r == .again { queue.append(c) } else { done += 1 }
+        done += 1
         showBack = false
         if queue.isEmpty { UINotificationFeedbackGenerator().notificationOccurred(.success) } else if let n = queue.first { autoplay(n) }
+        Task {
+            let plan = DailyStudy.plan(allCards, defaults: defaults)
+            await StudyReminders.shared.refresh(defaults: defaults, completed: plan.remaining == 0 || (plan.completed > 0 && plan.queue.isEmpty && plan.nextLearningDate == nil))
+        }
     }
 
     private func ratingButton(_ card: Card, _ rating: Rating) -> some View {
@@ -159,13 +182,9 @@ struct ReviewView: View {
             }
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, 16).padding(.vertical, 12)
-            .frame(maxWidth: .infinity, minHeight: 64)
-            .background(Theme.controlFill, in: RoundedRectangle(cornerRadius: 10))
-            .overlay { RoundedRectangle(cornerRadius: 10).stroke(Theme.controlBorder, lineWidth: 0.5) }
+            .frame(maxWidth: .infinity, minHeight: 40)
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(Theme.ink)
+        .buttonStyle(PaperActionStyle(expanded: true))
         .accessibilityLabel(L10n.format("review.a11yRating", rating.label, interval))
     }
 
@@ -187,8 +206,12 @@ struct ReviewView: View {
         ReviewStudyStage {
             VStack(spacing: 16) {
                 Text("review.done").font(Theme.Fonts.body.weight(.semibold))
-                Text(L10n.format("review.completed", Int64(total)))
+                Text(L10n.format("study.sessionFinished", Int64(total)))
                     .font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
+                if let next = DailyStudy.plan(allCards, defaults: defaults).nextLearningDate {
+                    Text("study.retryLater").foregroundStyle(Theme.textSecondary)
+                    Text(next, style: .time)
+                }
             }
         }
     }

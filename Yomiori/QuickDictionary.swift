@@ -40,7 +40,7 @@ struct DictionaryHit: Identifiable {
             return l != r ? l : left.term.localizedStandardCompare(right.term) == .orderedAscending
         }.prefix(40))
     }
-    static func save(_ hit: DictionaryHit, context: ModelContext) throws {
+    static func save(_ hit: DictionaryHit, context: ModelContext, autoCard: Bool = true) throws {
         try Operations.shared.checkpoint(Operations.shared.generation)
         let language = hit.language
         let existing = try context.fetch(FetchDescriptor<DictEntry>(predicate: #Predicate { $0.languageCode == language && $0.kind == "word" }))
@@ -49,7 +49,11 @@ struct DictionaryHit: Identifiable {
         entry.languageCode = language; entry.reading = hit.reading; entry.meaning = hit.meaning
         entry.context = hit.context; entry.sourceName = hit.source
         context.insert(entry)
-        do { try context.save() } catch { context.delete(entry); throw error }
+        var card: Card?
+        do {
+            if autoCard { card = try DailyStudy.addSaved(entry, context: context) }
+            try context.save()
+        } catch { if let card { context.delete(card) }; context.delete(entry); throw error }
     }
 }
 
@@ -69,6 +73,7 @@ struct QuickDictionaryView: View {
     @State private var failure: String?
     @State private var task: Task<Void, Never>?
     @State private var showingSettings = false
+    @AppStorage("study.autoCards") private var autoCards = true
     private var hits: [DictionaryHit] { QuickDictionary.search(query, language: language, saved: saved, documents: library.documents) }
     private var otherHits: [DictionaryHit] { hits.filter { QuickDictionary.normalized($0.term) != result.map { QuickDictionary.normalized($0.term) } } }
     var body: some View {
@@ -80,7 +85,7 @@ struct QuickDictionaryView: View {
                     Picker("Language", selection: $language) { Text("Japanese").tag("ja"); Text("English").tag("en") }
                     Button { lookup() } label: {
                         HStack { Label("Look up meaning", systemImage: "magnifyingglass"); Spacer(); if busy { ProgressView() } }
-                    }.disabled(busy || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }.buttonStyle(TextActionStyle()).disabled(busy || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .accessibilityIdentifier("lookup.search")
                 }.listRowBackground(Theme.surface)
                 if !sentence.isEmpty {
@@ -92,7 +97,7 @@ struct QuickDictionaryView: View {
                 if let failure {
                     Section {
                         Text(failure).foregroundStyle(Theme.errorText)
-                        Button("AI service settings") { showingSettings = true }
+                        Button("AI service settings") { showingSettings = true }.buttonStyle(TextActionStyle())
                     }.listRowBackground(Theme.surface)
                 }
                 if !otherHits.isEmpty {
@@ -118,9 +123,9 @@ struct QuickDictionaryView: View {
             Text(verbatim: hit.meaning).textSelection(.enabled)
             Text(verbatim: hit.source).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
             let exists = saved.contains { $0.kind == "word" && $0.languageCode == hit.language && QuickDictionary.normalized($0.term) == QuickDictionary.normalized(hit.term) }
-            Button(exists ? "In dictionary" : "Add to dictionary", systemImage: exists ? "checkmark" : "plus") {
-                do { try QuickDictionary.save(hit, context: context) } catch { failure = error.localizedDescription }
-            }.disabled(exists).frame(minHeight: 44).accessibilityIdentifier("lookup.save.\(hit.term)")
+            Button(exists ? "In dictionary" : (autoCards ? "study.saveAndReview" : "Add to dictionary"), systemImage: exists ? "checkmark" : "plus") {
+                do { try QuickDictionary.save(hit, context: context, autoCard: autoCards) } catch { failure = error.localizedDescription }
+            }.buttonStyle(PaperActionStyle()).disabled(exists).accessibilityIdentifier("lookup.save.\(hit.term)")
         }.padding(.vertical, 8)
     }
     private func cancel() { task?.cancel(); task = nil; busy = false; result = nil; failure = nil }

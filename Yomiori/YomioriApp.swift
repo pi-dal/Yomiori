@@ -7,6 +7,7 @@ struct YomioriApp: App {
     @State private var app = AppState()
 
     init() {
+        StudyReminders.shared.install()
         let preferences = UserDefaults.standard
         if preferences.object(forKey: "targetLang") == nil { preferences.set("ja", forKey: "targetLang") }
         if preferences.object(forKey: "nativeLang") == nil { preferences.set(Language.deviceDefault, forKey: "nativeLang") }
@@ -52,13 +53,14 @@ enum AppTab: Hashable { case read, documents, dictionary, coach }
 @Observable
 final class AppState {
     var tab: AppTab = .read
+    var showStudy = false
     var pendingCoachPrompt: String?
     var pendingContext: String?
     /// "Go to source": open a subtitle at a time, or a PDF at a page.
     var jumpMaterial: (id: String, time: Double)?
     var jumpDoc: (id: String, page: Int)?
     func resetNavigation() {
-        tab = .read; pendingCoachPrompt = nil; pendingContext = nil; jumpMaterial = nil; jumpDoc = nil
+        tab = .read; showStudy = false; pendingCoachPrompt = nil; pendingContext = nil; jumpMaterial = nil; jumpDoc = nil
     }
     func goToSource(_ e: DictEntry) {
         if e.sourceKind == "subtitle" { jumpMaterial = (e.sourceID, e.sourcePos); tab = .read }
@@ -104,5 +106,7 @@ struct RootView: View {
             Tab("Coach", systemImage: "bubble.left.and.bubble.right", value: AppTab.coach) { CoachView() }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        .modifier(StudyLifecycle())
+        .fullScreenCover(isPresented: $app.showStudy) { DailyStudyView() }
     }
 }

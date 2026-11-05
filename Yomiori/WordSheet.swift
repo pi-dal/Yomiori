@@ -8,6 +8,7 @@ struct WordSheet: View {
     @Query private var saved: [DictEntry]
     @Query private var cards: [Card]
     @AppStorage("jaDefs") private var jaDefs = false
+    @AppStorage("study.autoCards") private var autoCards = true
     @State private var entry: Words.Entry?
     @State private var failed = false
     @State private var toast: String?
@@ -60,15 +61,17 @@ struct WordSheet: View {
                         Button { mine() } label: {
                             HStack {
                                 if busy { ProgressView().tint(Theme.background) }
-                                Text(toast ?? (mined ? L10n.string("read.mined") : L10n.string("read.mine")))
+                                Text(toast ?? (mined ? L10n.string("read.mined") : L10n.string(autoCards ? "study.saveAndReview" : "read.mine")))
                             }
                         }
                         .buttonStyle(InkButtonStyle()).disabled(busy || mined || entry == nil)
-                        Button { toggle() } label: {
-                            Text(isSaved ? L10n.string("read.saved") : L10n.string("read.saveWord"))
-                                .frame(maxWidth: .infinity, minHeight: 48)
+                        if !autoCards {
+                            Button { toggle() } label: {
+                                Text(isSaved ? L10n.string("read.saved") : L10n.string("read.saveWord"))
+                                    .frame(maxWidth: .infinity, minHeight: 48)
+                            }
+                            .accessibilityAddTraits(isSaved ? .isSelected : [])
                         }
-                        .accessibilityAddTraits(isSaved ? .isSelected : [])
                     } else {
                         Button { toggle() } label: {
                             Text(isSaved ? L10n.string("read.saved") : L10n.string("read.saveWord"))
@@ -134,7 +137,7 @@ struct WordSheet: View {
         }
     }
     private func toggle() {
-        do { try CardMining.toggle(target, meaning: entry?.meaning ?? "", context: ctx) }
+        do { try CardMining.toggle(target, meaning: entry?.meaning ?? "", context: ctx, autoCard: autoCards) }
         catch { operationError = error.localizedDescription }
     }
 }

@@ -5,6 +5,7 @@ import PDFKit
 struct DictionaryView: View {
     @Environment(\.modelContext) private var ctx
     @Environment(AppState.self) private var app
+    @Environment(\.studyDefaults) private var defaults
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Query(sort: \DictEntry.createdAt, order: .reverse) private var all: [DictEntry]
     @State private var search = ""
@@ -14,9 +15,10 @@ struct DictionaryView: View {
     @State private var selected: DictEntry?
     @Query private var cards: [Card]
     @AppStorage("reviewLimit") private var limit = 30
+    @AppStorage("study.newLimit") private var newLimit = 5
     @State private var reviewing = false
     @State private var showAllRecent = false
-    private var dueCount: Int { ReviewView.due(cards, limit: limit).count }
+    private var dueCount: Int { DailyStudy.plan(cards, defaults: defaults).queue.count }
 
     private var shown: [DictEntry] {
         var l = all

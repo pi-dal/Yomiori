@@ -54,7 +54,7 @@ struct WordListImportView: View {
             .foregroundStyle(Theme.ink)
             .font(Theme.Fonts.body)
             .environment(\.defaultMinListRowHeight, 48)
-            .tint(Theme.ink)
+            .tint(Theme.accent)
             .navigationTitle("Import word list")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

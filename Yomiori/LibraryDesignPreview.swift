@@ -33,11 +33,26 @@ struct LibraryDesignPreview: View {
     var body: some View {
         RootView()
             .defaultAppStorage(preferences)
+            .environment(\.studyDefaults, preferences)
             .sheet(isPresented: $showSettings) { SettingsView() }
             .task {
                 guard !seeded else { return }
                 seeded = true
                 let arguments = ProcessInfo.processInfo.arguments
+                if arguments.contains("--daily-study-preview") {
+                    preferences.set(5, forKey: "reviewLimit")
+                    preferences.set(2, forKey: "study.newLimit")
+                    preferences.set("saved", forKey: "study.source")
+                    preferences.set(false, forKey: "study.autoCards")
+                    for index in 1...5 {
+                        let card = Card(sentence: "毎日、少しずつ学びます。", word: "毎日 \(index)")
+                        card.meaning = "Learn a little every day."
+                        card.reps = index <= 3 ? 1 : 0
+                        card.due = Date().addingTimeInterval(-60)
+                        context.insert(card)
+                    }
+                    try? context.save()
+                }
                 if let flag = arguments.firstIndex(of: "--preview-tab"), flag + 1 < arguments.count {
                     app.tab = ["documents": .documents, "dictionary": .dictionary, "coach": .coach][arguments[flag + 1]] ?? .read
                 }

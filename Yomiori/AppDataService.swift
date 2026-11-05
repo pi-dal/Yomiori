@@ -11,6 +11,7 @@ import SwiftData
         let library = library ?? .shared
         let directories = directories ?? managedDirectories
         operations.beginReset()
+        StudyReminders.shared.cancel()
         do {
             // Preserve pending edits before deleting in a separate context. That context owns its rollback.
             try context.save()

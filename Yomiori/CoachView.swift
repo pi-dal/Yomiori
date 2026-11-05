@@ -117,7 +117,6 @@ struct CoachView: View {
                     session.cancelReply(); focused = false; showingLive = true
                 } label: {
                     Label("Start voice conversation", systemImage: "waveform")
-                        .frame(minHeight: 44)
                 }.buttonStyle(CompactActionStyle()).padding(.bottom, 20)
                 conversationStarter("Talk about my day", prompt: "Help me talk about my day.")
                 conversationStarter("Practice a café order", prompt: "Let’s practice ordering at a café.")
@@ -125,7 +124,7 @@ struct CoachView: View {
                 Button { showWeak = true } label: {
                     Label("Practice & improve", systemImage: "chart.bar")
                         .font(.subheadline).frame(minHeight: 44)
-                }.padding(.top, 20)
+                }.buttonStyle(TextActionStyle()).padding(.top, 20)
             }
             .frame(maxWidth: 640, alignment: .leading).padding(.horizontal, 24).padding(.bottom, 24).frame(maxWidth: .infinity)
         }
@@ -198,7 +197,7 @@ struct CoachView: View {
             }
             Button("Look up a word", systemImage: "character.book.closed") {
                 lookupSentence = m.content; showingLookup = true
-            }.font(.subheadline).frame(minHeight: 44)
+            }.buttonStyle(TextActionStyle())
             if m.role == "user" {
                 ForEach(m.corrections, id: \.self) { c in
                     Button { showWeak = true } label: {
@@ -219,7 +218,7 @@ struct CoachView: View {
         HStack(alignment: .bottom, spacing: 8) {
             Button { session.cancelReply(); focused = false; showingLive = true } label: {
                 Image(systemName: "waveform").frame(width: 44, height: 44)
-            }.accessibilityLabel("Start voice conversation").accessibilityIdentifier("coach.live")
+            }.buttonStyle(TextActionStyle()).accessibilityLabel("Start voice conversation").accessibilityIdentifier("coach.live")
             TextField("", text: $input, prompt: Text("Message Coach").foregroundStyle(Theme.textSecondary), axis: .vertical)
                 .accessibilityLabel("Message Coach").foregroundStyle(Theme.ink)
                 .lineLimit(1...(dynamicTypeSize.isAccessibilitySize ? 2 : 5)).focused($focused)
@@ -228,7 +227,7 @@ struct CoachView: View {
                 Image(systemName: "arrow.up").font(.subheadline.weight(.semibold))
                     .foregroundStyle(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending ? Theme.textSecondary : Theme.background)
                     .frame(width: sendDiameter, height: sendDiameter)
-                    .background(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending ? Theme.controlFill : Theme.ink, in: Circle())
+                    .background(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || sending ? Theme.controlSelected : Theme.accent, in: Circle())
                     .frame(width: max(44, sendDiameter + 12), height: max(44, sendDiameter + 12))
             }
             .buttonStyle(PressFeedbackStyle())

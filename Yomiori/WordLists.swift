@@ -190,7 +190,7 @@ struct IELTSWordListView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(Language.find(store.document?.language ?? "en").displayName).font(Theme.Fonts.meta)
                     Text(L10n.format("lists.progress", Int64(savedCount), Int64(store.words.count))).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
-                    ProgressView(value: Double(savedCount), total: Double(max(store.words.count, 1))).tint(Theme.ink)
+                    ProgressView(value: Double(savedCount), total: Double(max(store.words.count, 1))).tint(Theme.accent)
                         .accessibilityLabel("Words in your Cards")
                         .accessibilityValue(L10n.format("lists.progress", Int64(savedCount), Int64(store.words.count)))
                 }
@@ -247,7 +247,7 @@ struct IELTSWordListView: View {
         }
         .environment(\.defaultMinListRowHeight, 48).listStyle(.plain).listSectionSpacing(24).scrollContentBackground(.hidden).background(Theme.background)
         .frame(maxWidth: 720).frame(maxWidth: .infinity).background(Theme.background)
-        .foregroundStyle(Theme.ink).font(Theme.Fonts.body).tint(Theme.ink)
+        .foregroundStyle(Theme.ink).font(Theme.Fonts.body).tint(Theme.accent)
         .navigationTitle(store.document?.title ?? "IELTS").navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Button(newWords.isEmpty ? L10n.string("No new words") : L10n.format("lists.batch", Int64(newWords.count))) {
@@ -297,8 +297,9 @@ private struct IELTSWordRow: View {
                     Text(word.meaning.isEmpty ? word.senses.map(\.en).joined(separator: "; ") : word.meaning).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary)
                 }
             }
-            Button(L10n.string(saved ? "In Cards" : "Add to Cards"), action: add)
-                .font(Theme.Fonts.body.weight(.semibold)).frame(minHeight: 44).buttonStyle(.borderless).disabled(saved)
+            Button(action: add) {
+                Label(L10n.string(saved ? "In Cards" : "Add to Cards"), systemImage: saved ? "checkmark" : "plus")
+            }.buttonStyle(PaperActionStyle()).disabled(saved)
                 .accessibilityLabel(Text(verbatim: word.w)).accessibilityValue(L10n.string(saved ? "In Cards" : "Add to Cards"))
         }.frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
     }
@@ -405,7 +406,7 @@ struct AtlasWordDetailView: View {
         }
         .environment(\.defaultMinListRowHeight, 48).listStyle(.plain).listSectionSpacing(24).scrollContentBackground(.hidden).background(Theme.background)
         .frame(maxWidth: 720).frame(maxWidth: .infinity).background(Theme.background)
-        .foregroundStyle(Theme.ink).font(Theme.Fonts.body).tint(Theme.ink)
+        .foregroundStyle(Theme.ink).font(Theme.Fonts.body).tint(Theme.accent)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Button(L10n.string(saved ? "In Cards" : "Add to Cards")) {
                 do { try IELTSCardWriter.add([word], context: context, document: document) }
@@ -556,7 +557,7 @@ private struct WordListSourceDetailView: View {
             }.wordListRows()
         }
         .environment(\.defaultMinListRowHeight, 48).listStyle(.plain).listSectionSpacing(24).scrollContentBackground(.hidden).background(Theme.background)
-        .font(Theme.Fonts.body).foregroundStyle(Theme.ink).tint(Theme.ink)
+        .font(Theme.Fonts.body).foregroundStyle(Theme.ink).tint(Theme.accent)
         .navigationTitle(L10n.string("Source and license")).navigationBarTitleDisplayMode(.inline)
     }
 }

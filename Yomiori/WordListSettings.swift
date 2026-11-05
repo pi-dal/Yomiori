@@ -14,7 +14,7 @@ struct WordListCreditsView: View {
                 NavigationLink("Open source licenses") { OpenSourceLicensesView() }.frame(minHeight: 44)
             }.frame(maxWidth: 720, alignment: .leading).padding(.horizontal, 24).padding(.vertical, 16).frame(maxWidth: .infinity)
         }
-        .font(Theme.Fonts.body).foregroundStyle(Theme.ink).tint(Theme.ink)
+        .font(Theme.Fonts.body).foregroundStyle(Theme.ink).tint(Theme.accent)
         .listStyle(.plain).listSectionSpacing(24).scrollContentBackground(.hidden).background(Theme.background)
         .navigationTitle(L10n.string("Credits")).navigationBarTitleDisplayMode(.inline)
     }
@@ -42,7 +42,7 @@ struct LanguagesSettingsView: View {
             }.pickerStyle(.menu).frame(maxWidth: 720, alignment: .leading).padding(.horizontal, 24).padding(.vertical, 16).frame(maxWidth: .infinity)
         }
         .listStyle(.plain).listSectionSpacing(24)
-        .font(Theme.Fonts.body).foregroundStyle(Theme.ink).tint(Theme.ink)
+        .font(Theme.Fonts.body).foregroundStyle(Theme.ink).tint(Theme.accent)
         .scrollContentBackground(.hidden).background(Theme.background)
         .navigationTitle(L10n.string("Languages")).navigationBarTitleDisplayMode(.inline)
     }

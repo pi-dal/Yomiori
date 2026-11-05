@@ -150,7 +150,7 @@ struct LinkSheet: View {
                     }
                 }.frame(maxWidth: 720, alignment: .leading).padding(.horizontal, 24).padding(.vertical, 16).frame(maxWidth: .infinity)
             }
-            .background(Theme.background).font(Theme.Fonts.body).foregroundStyle(Theme.ink).tint(Theme.ink)
+            .background(Theme.background).font(Theme.Fonts.body).foregroundStyle(Theme.ink).tint(Theme.accent)
             .navigationTitle(L10n.string(feed != nil ? "link.episodes" : mode == .link ? "link.title" : "link.podcastTitle")).navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancel") { cancel(); dismiss() } } }
             .onDisappear { cancel() }
@@ -187,7 +187,7 @@ struct LinkSheet: View {
                         }.font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
                     }
                     }
-                    Button("Import episode") { fetch(e.url, title: e.title, kind: "podcast", art: e.art) }.font(Theme.Fonts.body.weight(.semibold)).frame(minHeight: 44).foregroundStyle(Theme.ink).disabled(busy)
+                    Button("Import episode") { fetch(e.url, title: e.title, kind: "podcast", art: e.art) }.buttonStyle(PaperActionStyle()).disabled(busy)
                 }
             }
         }

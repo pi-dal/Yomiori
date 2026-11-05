@@ -42,10 +42,12 @@ struct SettingsView: View {
                 Section {
                     Toggle("Japanese definitions", isOn: $jaDefs)
                     Toggle("English definitions", isOn: $enDefs)
-                    Stepper(value: $reviewLimit, in: 10...100, step: 10) { preferenceValue("Daily review limit") { Text(reviewLimit, format: .number).foregroundStyle(Theme.textSecondary) } }
+                    NavigationLink { StudySettingsView() } label: { Label("study.settings", systemImage: "calendar") }
                     NavigationLink { StagePicker() } label: { preferenceValue("Learning stage") { Text(CoachStage.current.label).foregroundStyle(Theme.textSecondary) } }
                     NavigationLink("nav.immersion") { ImmersionView() }
-                    Button("Export to Anki") { exporting = true }
+                    Button { exporting = true } label: {
+                        Label("Export to Anki", systemImage: "square.and.arrow.up")
+                    }.buttonStyle(TextActionStyle())
                 } header: { Text("Learning").font(Theme.Fonts.meta.weight(.semibold)) }
                 .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20)).listRowBackground(Theme.surface)
                 Section {

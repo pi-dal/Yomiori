@@ -17,6 +17,10 @@ import SwiftData
     var definitionEnglish: String = ""
     var audioFile: String?
     var sourceID: String = ""
+    var sourceKind: String = "subtitle"
+    var firstReviewedAt: Date?
+    var lastReviewedAt: Date?
+    var lastCompletedAt: Date?
     var sourceName: String = ""
     var sourcePos: Double = 0
     var createdAt = Date()
@@ -59,7 +63,7 @@ enum Scheduler {
         let d = Int(boundedInterval(days))
         return L10n.format("review.nextDays", Int64(d))
     }
-    static func apply(_ c: Card, _ r: Rating) {
+    static func apply(_ c: Card, _ r: Rating, now: Date = Date()) {
         let days = next(c, r)
         c.ease = boundedEase(c.ease)
         switch r {
@@ -71,7 +75,6 @@ enum Scheduler {
         c.ease = boundedEase(c.ease)
         c.reps += 1
         c.interval = days
-        let now = Date()
         c.due = days == 0 ? now.addingTimeInterval(600)
             : Calendar.current.date(byAdding: .day, value: Int(days), to: Calendar.current.startOfDay(for: now))
                 ?? now.addingTimeInterval(days * 86_400)

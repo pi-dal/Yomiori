@@ -156,6 +156,7 @@ struct ReadView: View {
     private var empty: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                DailyStudySection().padding(.bottom, 24)
                 Text("Your next read starts here.")
                     .literary(.title1)
                     .padding(.top, 20).padding(.bottom, 12)
@@ -175,6 +176,11 @@ struct ReadView: View {
         let featuredMaterial = query.isEmpty ? resumed : nil
         let recent = shown.filter { $0.id != featuredMaterial?.id }
         return List {
+            if query.isEmpty {
+                DailyStudySection()
+                    .listRowInsets(EdgeInsets(top: 12, leading: 24, bottom: 16, trailing: 24))
+                    .listRowBackground(Theme.background).listRowSeparator(.hidden)
+            }
             if let material = featuredMaterial {
                 Section {
                     Button { path.append(material) } label: { featured(material) }

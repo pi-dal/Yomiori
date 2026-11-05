@@ -77,7 +77,7 @@ import SwiftData
         #expect((value["session"] as? [String: Any])?["enable_search"] as? Bool == true)
     }
     @Test func localLookupWorksWithoutAIAndSavingDeduplicatesWithinLanguage() throws {
-        let container = try ModelContainer(for: DictEntry.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let container = try ModelContainer(for: DictEntry.self, Card.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let context = container.mainContext
         let data = try Data(contentsOf: #require(Bundle.main.url(forResource: "word-atlas", withExtension: "json")))
         let document = try WordListDocument.decodeValidated(data)

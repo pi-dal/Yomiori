@@ -30,6 +30,30 @@ import XCTest
         XCTAssertTrue(app.switches["Allow web search in voice conversations"].exists)
         capture(app, "voice-settings")
     }
+    func testWordListActionsAndExport() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--library-design-preview", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        XCTAssertTrue(app.tabBars.buttons["Dictionary"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Dictionary"].tap()
+        app.buttons["Lists"].tap()
+        app.staticTexts["IELTS"].firstMatch.tap()
+        let add = app.buttons.matching(NSPredicate(format: "value == %@", "Add to Cards")).firstMatch
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        capture(app, "word-list-paper-actions")
+        add.tap()
+        capture(app, "word-list-saved-actions")
+        app.navigationBars.buttons.firstMatch.tap()
+        app.tabBars.buttons["Read"].tap()
+        app.buttons["Settings"].tap()
+        let export = app.buttons["Export to Anki"]
+        for _ in 0..<4 { if export.isHittable { break }; app.swipeUp() }
+        export.tap()
+        XCTAssertTrue(app.navigationBars["Anki"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["export.primary"].exists)
+        capture(app, "export-ink-action")
+    }
+
     func testChineseDarkVoiceEntry() {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN", "-AppleInterfaceStyle", "Dark"]

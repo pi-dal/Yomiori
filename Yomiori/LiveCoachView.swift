@@ -38,14 +38,16 @@ struct LiveCoachView: View {
                             Toggle("Pronunciation & intonation practice", isOn: $pronunciation)
                             Label(store.configuration.webSearch ? "Web search enabled" : "Web search off", systemImage: "globe")
                                 .font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
-                            Button("Voice service settings") { settings = true }.frame(minHeight: 44)
+                            Button { settings = true } label: {
+                                ActionRowLabel(title: "Voice service settings", symbol: "slider.horizontal.3")
+                            }.buttonStyle(TextActionStyle())
                         }
                         ForEach(session.turns) { turn in
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(turn.role == "user" ? "You" : "Coach").font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
                                 TappableText(text: turn.text, language: language, furigana: false) { word in lookup = LiveLookup(text: turn.text, word: word) }
                                 Button("Look up a word", systemImage: "character.book.closed") { lookup = LiveLookup(text: turn.text) }
-                                    .font(.subheadline).frame(minHeight: 44)
+                                    .buttonStyle(TextActionStyle())
                             }.frame(maxWidth: .infinity, alignment: .leading)
                         }
                         if session.searchCount > 0 {
@@ -62,16 +64,14 @@ struct LiveCoachView: View {
             }
             .background(Theme.background).foregroundStyle(Theme.ink).tint(Theme.accent)
             .safeAreaInset(edge: .bottom) {
-                HStack(spacing: 20) {
+                VStack(spacing: 12) {
                     if session.active {
-                        Button { session.setMuted(!session.muted) } label: {
-                            Label(session.muted ? "Unmute" : "Mute", systemImage: session.muted ? "mic.slash" : "mic")
-                        }.frame(minHeight: 44)
-                        if session.phase == .speaking {
-                            Button("Interrupt") { Task { await session.interrupt() } }.frame(minHeight: 44)
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 12) { liveControls }
+                            VStack(spacing: 12) { liveControls }
                         }
-                        Spacer()
-                        Button("End conversation", role: .destructive) { session.stop() }.frame(minHeight: 44)
+                        Button("End conversation", role: .destructive) { session.stop() }
+                            .buttonStyle(PaperActionStyle(expanded: true))
                     } else {
                         Button("Start voice conversation", systemImage: "waveform") { start() }
                             .buttonStyle(InkButtonStyle()).accessibilityIdentifier("live.start")
@@ -91,6 +91,15 @@ struct LiveCoachView: View {
                    reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue { session.stop() }
             }
             .onDisappear { session.stop() }
+        }
+    }
+    @ViewBuilder private var liveControls: some View {
+        Button { session.setMuted(!session.muted) } label: {
+            Label(session.muted ? "Unmute" : "Mute", systemImage: session.muted ? "mic.slash" : "mic")
+        }.buttonStyle(PaperActionStyle(expanded: true))
+        if session.phase == .speaking {
+            Button("Interrupt") { Task { await session.interrupt() } }
+                .buttonStyle(PaperActionStyle(expanded: true))
         }
     }
     private func start() {

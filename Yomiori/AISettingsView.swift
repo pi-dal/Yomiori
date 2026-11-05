@@ -66,7 +66,7 @@ struct AISettingsView: View {
             }.listRowBackground(Theme.surface)
         }
         .scrollContentBackground(.hidden).background(Theme.groupedBackground)
-        .foregroundStyle(Theme.ink).tint(Theme.ink).font(Theme.Fonts.body)
+        .foregroundStyle(Theme.ink).tint(Theme.accent).font(Theme.Fonts.body)
         .navigationTitle("AI service").navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {

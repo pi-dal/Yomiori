@@ -8,6 +8,10 @@ The user wants Apple-native quality and Liquid Glass in appropriate native contr
 
 Keep the supplied reading-cat app icon. Preserve native navigation, accessibility text sizes, light/dark appearance, imports, saved words, reviews and practice. PDF pages must keep their exact original typography and layout; selecting text opens Chinese translation without rebuilding the page.
 
+## Daily learning
+
+The user requested automatic daily learning and reminders. Yomiori owns the review schedule; Anki remains optional export. Prepare a bounded daily queue from due cards, saved vocabulary and a matching word list, preserve progress between sessions, and put a direct start action on Read. Saving a word can create a review card automatically. Reminders require explicit system permission and use a configurable local time; completed work suppresses the current day's pending notification. Do not silently request additional AI enrichment to prepare the queue.
+
 ## Boundaries
 
 Do not invent library content, progress or usage statistics. DEBUG previews use isolated synthetic fixtures. No TestFlight upload is authorized by this visual task. Simulator evidence does not establish real-device gesture quality or live AI accuracy.

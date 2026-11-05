@@ -44,7 +44,7 @@ import SwiftData
             throw error
         }
     }
-    static func toggle(_ target: ReaderView.WordTarget, meaning: String, context: ModelContext) throws {
+    static func toggle(_ target: ReaderView.WordTarget, meaning: String, context: ModelContext, autoCard: Bool = true) throws {
         try Operations.shared.checkpoint(Operations.shared.generation)
         let word = target.word, source = target.materialID
         let existing = try context.fetch(FetchDescriptor<DictEntry>(predicate: #Predicate { $0.term == word && $0.sourceID == source && $0.kind != "highlight" }))
@@ -53,7 +53,11 @@ import SwiftData
             do { try context.save() } catch { context.rollback(); throw error }
         } else {
             let entry = makeEntry(target, meaning: meaning); context.insert(entry)
-            do { try context.save() } catch { context.delete(entry); throw error }
+            var card: Card?
+            do {
+                if autoCard { card = try DailyStudy.addSaved(entry, context: context) }
+                try context.save()
+            } catch { if let card { context.delete(card) }; context.delete(entry); throw error }
         }
     }
     private static func makeEntry(_ target: ReaderView.WordTarget, meaning: String) -> DictEntry {

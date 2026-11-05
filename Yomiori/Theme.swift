@@ -279,18 +279,89 @@ struct SourceAction: View {
 
 /// Shared action treatment; visual density is independent from the 44pt touch target.
 struct CompactActionStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.modifier(ActionSurface(pressed: configuration.isPressed, role: configuration.role))
+    }
+}
+
+/// A paper inset for secondary tasks; destructive actions retain vermilion in every state.
+struct PaperActionStyle: ButtonStyle {
+    var expanded = false
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.modifier(ActionSurface(pressed: configuration.isPressed, role: configuration.role,
+                                                   primary: false, expanded: expanded))
+    }
+}
+
+private struct ActionSurface: ViewModifier {
+    @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let pressed: Bool
+    let role: ButtonRole?
+    var primary = true
+    var expanded = false
+    var isStatic = false
+    private var foreground: Color {
+        guard enabled else { return Theme.textSecondary }
+        if role == .destructive { return primary ? Theme.background : Theme.vermilion }
+        return primary ? Theme.background : Theme.accent
+    }
+    private var fill: Color {
+        guard enabled else { return Theme.controlFill }
+        if primary { return role == .destructive ? Theme.vermilion : Theme.ink }
+        return pressed ? Theme.controlSelected : Theme.controlFill
+    }
+    func body(content: Content) -> some View {
+        content
+            .font(.subheadline.weight(.semibold))
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 18).padding(.vertical, 13)
+            .frame(maxWidth: expanded ? .infinity : nil, minHeight: 48)
+            .background(fill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .opacity(pressed && enabled && primary ? 0.88 : 1)
+            .scaleEffect(pressed && enabled && !reduceMotion && !isStatic ? 0.985 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: pressed)
+    }
+}
+
+/// Inline commands retain the reading rhythm while keeping a full-size touch target.
+struct TextActionStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var enabled
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(isEnabled ? Theme.background : Theme.textSecondary)
-            .padding(.horizontal, 16).padding(.vertical, 11)
-            .frame(minHeight: 44)
-            .background(isEnabled ? Theme.ink : Theme.controlFill, in: RoundedRectangle(cornerRadius: 10))
-            .opacity(configuration.isPressed ? 0.8 : 1)
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
-            .animation(reduceMotion ? nil : .timingCurve(0.2, 0, 0, 1, duration: 0.15), value: configuration.isPressed)
+            .foregroundStyle(enabled ? (configuration.role == .destructive ? Theme.vermilion : Theme.accent) : Theme.textSecondary)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed && enabled ? 0.6 : 1)
+    }
+}
+
+/// Navigation-like actions belong to the content grid, with a quiet directional affordance.
+struct ActionRowLabel: View {
+    let title: LocalizedStringKey
+    let symbol: String
+    var detail: String? = nil
+    @ScaledMetric(relativeTo: .body) private var iconWidth: CGFloat = 24
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: symbol).font(.body).frame(width: iconWidth).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.subheadline.weight(.semibold))
+                if let detail { Text(verbatim: detail).font(.footnote).foregroundStyle(Theme.textSecondary) }
+            }
+            Spacer(minLength: 12)
+            Image(systemName: "chevron.right").font(.caption.weight(.medium)).foregroundStyle(Theme.textSecondary).accessibilityHidden(true)
+        }
+        .multilineTextAlignment(.leading)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
     }
 }
 
@@ -311,29 +382,22 @@ struct PageHeading: View {
 
 /// Full-width version for tasks that need a single primary action.
 struct InkButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var isStatic = false
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.subheadline.weight(.semibold))
-            .padding(.horizontal, 16).padding(.vertical, 11)
-            .foregroundStyle(isEnabled ? Theme.background : Theme.textSecondary)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background(isEnabled ? Theme.ink : Theme.controlFill, in: RoundedRectangle(cornerRadius: 10))
-            .opacity(configuration.isPressed && isEnabled ? 0.85 : 1)
-            .scaleEffect(configuration.isPressed && !reduceMotion && !isStatic ? 0.96 : 1)
-            .animation(reduceMotion ? nil : .timingCurve(0.2, 0, 0, 1, duration: 0.15), value: configuration.isPressed)
+        configuration.label.modifier(ActionSurface(pressed: configuration.isPressed, role: configuration.role,
+                                                   expanded: true, isStatic: isStatic))
     }
 }
 
 /// Tactile feedback for custom content buttons; native controls keep native behavior.
 struct PressFeedbackStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var isStatic = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .opacity(configuration.isPressed ? 0.75 : 1)
-            .scaleEffect(configuration.isPressed && !reduceMotion && !isStatic ? 0.96 : 1)
+            .opacity(configuration.isPressed && enabled ? 0.75 : 1)
+            .scaleEffect(configuration.isPressed && enabled && !reduceMotion && !isStatic ? 0.985 : 1)
             .animation(reduceMotion ? nil : .timingCurve(0.2, 0, 0, 1, duration: 0.15), value: configuration.isPressed)
     }
 }

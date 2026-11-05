@@ -2,7 +2,21 @@
 
 2026-10-29：用户已授权全局改名并发布 TestFlight，发布操作使用 `asc`。
 
-## 最新发布：1.0 (5)，稳定性修复与查词／实时语音
+## 最新发布：1.0 (6)，每日学习自动化与按钮统一
+
+2026-11-05：用户授权「c，p，发新版」。使用 `asc-release-flow` 上传、关联现有组并提交 Beta 审核，使用 `asc-submission-health` 回读状态。
+
+- 版本 **1.0 (6)**，包含首页一键今日学习、每天默认 30 张／最多 5 个新词、到期旧卡优先、收藏自动制卡、进度持久化、10 分钟后重学，以及可选每日本地提醒。
+- 主操作、纸色次操作、文字／整行入口统一到和纸、墨色、抹茶样式；补齐加载、禁用、危险操作与大字号布局。
+- 发布前完整 **75 项单元测试（14 个测试组）通过**；按钮最终 **6 项界面场景通过**，另有每日学习专项及实际深色模式复测。参见[每日学习验收](acceptance/daily-study.md)、[按钮验收](acceptance/button-refinement.md)。测试结束时 Simulator 诊断收集出现 `simctl` 路径警告，测试结果为 `TEST SUCCEEDED`。
+- Release arm64 归档和 IPA 导出成功，归档及解包 App 严格签名校验通过；隐私清单和权限说明齐全。临时签名钥匙串已删除，搜索列表恢复。
+- Build／Upload／Beta Review ID：`7fca9433-7dd2-4bb2-af6d-8eed8ad6b7f8`。Apple 回读：`processingState=VALID`、`betaReviewState=APPROVED`、内部和外部均为 `IN_BETA_TESTING`、`autoNotifyEnabled=true`、`usesNonExemptEncryption=false`。
+- 两个现有测试组成员关系完整确认，中英文 What to Test 已创建并回读；严格 TestFlight 校验零错误／零警告。
+- 提醒需要首次授权，打开 App 时补齐未来 30 天排程；日语新词需要收藏或导入词库。真机通知送达／点击、实时语音服务、横屏视觉验收及完整 VoiceOver 尚未确认；测试说明已披露相关设置和边界。
+- 产物与 Apple 回读：`/tmp/yomiori-testflight-6/`。IPA SHA-256：`b8f1707556c75bb5c87ef8cbf229a9089de2c40b1a262f1c2e070d9a5f9d2fc7`。
+- 监控：`asc builds build-beta-detail view --build-id 7fca9433-7dd2-4bb2-af6d-8eed8ad6b7f8 --output table`。此次为 TestFlight 发布。
+
+## 历史发布：1.0 (5)，稳定性修复与查词／实时语音
 
 2026-11-03：用户授权「发个版」。使用 `asc-release-flow` 发布至现有 TestFlight 测试组。
 
