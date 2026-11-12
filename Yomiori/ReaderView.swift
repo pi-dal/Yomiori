@@ -10,6 +10,9 @@ struct ReaderView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title2) private var focusSize: CGFloat = 28
     @Query private var savedWords: [DictEntry]
+    /// Card words from every source in this language, marked wherever they are met again.
+    @Query private var studyCards: [Card]
+    @State private var studyCache = StudyLexiconCache()
     @State private var player = PlayerModel()
     @State private var translationMode = ReaderTranslation.off
     @State private var revealed = false
@@ -34,6 +37,8 @@ struct ReaderView: View {
         _material = Bindable(material)
         let id = material.id.uuidString
         _savedWords = Query(filter: #Predicate<DictEntry> { $0.sourceID == id })
+        let language = material.languageCode
+        _studyCards = Query(filter: #Predicate<Card> { $0.languageCode == language })
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         if let flag = arguments.firstIndex(of: "--preview-translation"), flag + 1 < arguments.count,
@@ -287,10 +292,11 @@ struct ReaderView: View {
     private func currentLine(_ i: Int) -> some View {
         let line = lines[i]
         let terms = savedTerms
+        let marks = studyCache.marks(for: line.text, cards: studyCards, language: material.languageCode)
         return VStack(alignment: .leading, spacing: 24) {
             TappableText(text: line.text, language: material.languageCode, furigana: furigana && material.languageCode == "ja",
                          pointSize: focusSize, lineSpacing: 10, highlighted: line.hl != nil,
-                         washed: { terms.contains($0) || tapped.contains("\(line.id)|\($0)") }) { w in
+                         washed: { terms.contains($0) || tapped.contains("\(line.id)|\($0)") }, studyMarks: marks) { w in
                 tapped.insert("\(line.id)|\(w)")
                 wordSheet = target(w, line)
             }

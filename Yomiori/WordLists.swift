@@ -75,6 +75,7 @@ enum IELTSCardWriter {
             card.languageCode = document?.language ?? "en"
             card.wordListID = document?.id ?? "ielts"
             card.wordListEntryID = word.id
+            card.wordLevel = word.level
             card.sourceID = ""
             card.sourceName = "\(document?.title ?? "IELTS"), \(document?.source.name ?? "Word Atlas")"
             card.audioRemoteURL = word.ex.isEmpty ? "" : word.exampleAudioURL?.absoluteString ?? ""
@@ -293,6 +294,9 @@ private struct IELTSWordRow: View {
             NavigationLink { AtlasWordDetailView(word: word, document: document) } label: {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(verbatim: word.w).font(Theme.Fonts.body.weight(.semibold)).foregroundStyle(Theme.ink)
+                    if !word.level.isEmpty {
+                        Text(WordListMetadata.level(word.level)).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
+                    }
                     if !word.reading.isEmpty { Text(verbatim: word.reading).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
                     Text(word.meaning.isEmpty ? word.senses.map(\.en).joined(separator: "; ") : word.meaning).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary)
                 }

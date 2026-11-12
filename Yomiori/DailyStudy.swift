@@ -20,16 +20,22 @@ struct StudyPlan {
     let remaining: Int
     let newSlots: Int
     let nextLearningDate: Date?
+    let minimumLevel: String?
 
-    init(cards: [Card], reviewLimit: Int, newLimit: Int, language: String? = nil, now: Date = Date(), calendar: Calendar = .current) {
+    init(cards: [Card], reviewLimit: Int, newLimit: Int, language: String? = nil, minimumLevel: String? = nil, now: Date = Date(), calendar: Calendar = .current) {
         let today: (Date?) -> Bool = { $0.map { calendar.isDate($0, inSameDayAs: now) } ?? false }
+        let selectedLevel = WordLevel.normalized(minimumLevel)
+        self.minimumLevel = selectedLevel
         completed = cards.filter { today($0.lastCompletedAt) }.count
         introduced = cards.filter { today($0.firstReviewedAt) }.count
         remaining = max(0, min(max(reviewLimit, 0), 100) - completed)
         let old = cards.filter { $0.reps > 0 && $0.due <= now && !today($0.lastCompletedAt) }
             .sorted { $0.due == $1.due ? $0.id.uuidString < $1.id.uuidString : $0.due < $1.due }
         newSlots = min(max(0, min(max(newLimit, 0), 20) - introduced), max(0, remaining - old.count))
-        let fresh = cards.filter { $0.reps == 0 && $0.due <= now && (language == nil || $0.languageCode == language) }
+        let fresh = cards.filter {
+            $0.reps == 0 && $0.due <= now && (language == nil || $0.languageCode == language)
+                && WordLevel.meets($0.wordLevel, minimum: selectedLevel)
+        }
             .sorted { $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt }
         queue = Array(old.prefix(remaining)) + Array(fresh.prefix(newSlots))
         nextLearningDate = remaining > 0 ? cards.filter {
@@ -38,15 +44,58 @@ struct StudyPlan {
     }
 }
 
+@MainActor
+enum FreePractice {
+    /// All cards for the active language, without the daily budget or SRS due filter.
+    /// Free practice only reads the cards; rating buttons are intentionally not shown there.
+    static func cards(_ cards: [Card], defaults: UserDefaults, now: Date = Date()) -> [Card] {
+        let language = defaults.string(forKey: "targetLang") ?? "ja"
+        return cards.filter { $0.languageCode == language && !$0.word.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .sorted {
+                let leftPriority = priority($0, now: now), rightPriority = priority($1, now: now)
+                if leftPriority != rightPriority { return leftPriority < rightPriority }
+                if $0.due != $1.due { return $0.due < $1.due }
+                if $0.createdAt != $1.createdAt { return $0.createdAt < $1.createdAt }
+                return $0.id.uuidString < $1.id.uuidString
+            }
+    }
+
+    private static func priority(_ card: Card, now: Date) -> Int {
+        if card.reps > 0 && card.due <= now { return 0 }
+        if card.reps == 0 { return 1 }
+        return 2
+    }
+}
+
+enum StudyCardStatus {
+    static func key(_ card: Card, now: Date = Date()) -> String {
+        if card.reps == 0 { return "review.new" }
+        if card.due <= now { return "review.dueNow" }
+        if card.interval == 0 { return "review.learning" }
+        return "review.scheduled"
+    }
+}
+
 @MainActor enum DailyStudy {
+    static let minimumLevelKey = "study.minimumLevel"
+    static let defaultEnglishMinimumLevel = "B1"
+
     static func reviewLimit(_ defaults: UserDefaults) -> Int {
         defaults.object(forKey: "reviewLimit") == nil ? 30 : defaults.integer(forKey: "reviewLimit")
     }
     static func newLimit(_ defaults: UserDefaults) -> Int {
         defaults.object(forKey: "study.newLimit") == nil ? 5 : defaults.integer(forKey: "study.newLimit")
     }
+    static func minimumLevel(_ defaults: UserDefaults, language: String? = nil) -> String? {
+        let language = language ?? defaults.string(forKey: "targetLang") ?? "ja"
+        guard language == "en" else { return nil }
+        guard defaults.object(forKey: minimumLevelKey) != nil else { return defaultEnglishMinimumLevel }
+        let selected = defaults.string(forKey: minimumLevelKey) ?? "all"
+        return selected == "all" ? nil : WordLevel.normalized(selected)
+    }
     static func plan(_ cards: [Card], defaults: UserDefaults, now: Date = Date()) -> StudyPlan {
-        StudyPlan(cards: cards, reviewLimit: reviewLimit(defaults), newLimit: newLimit(defaults), language: defaults.string(forKey: "targetLang") ?? "ja", now: now)
+        let language = defaults.string(forKey: "targetLang") ?? "ja"
+        return StudyPlan(cards: cards, reviewLimit: reviewLimit(defaults), newLimit: newLimit(defaults), language: language, minimumLevel: minimumLevel(defaults, language: language), now: now)
     }
 
     /// Local definitions only. Saving never silently starts an AI request or downloads audio.
@@ -70,6 +119,7 @@ struct StudyPlan {
         var slots = max(0, plan.newSlots - plan.queue.filter { $0.reps == 0 }.count)
         guard slots > 0 else { return }
         let language = defaults.string(forKey: "targetLang") ?? "ja"
+        let minimum = minimumLevel(defaults, language: language)
         let entries = try context.fetch(FetchDescriptor<DictEntry>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)]))
         var inserted: [Card] = []
         do {
@@ -83,11 +133,13 @@ struct StudyPlan {
                 let existing = try context.fetch(FetchDescriptor<Card>())
                 let ids = IELTSCardWriter.savedIDs(existing, listID: document.id)
                 var terms = Set(existing.filter { $0.languageCode == language }.map { QuickDictionary.normalized($0.word) })
-                let words = document.entries.filter { word in
-                    !ids.contains(word.id) && terms.insert(QuickDictionary.normalized(word.w)).inserted
-                }.prefix(slots)
+                let candidates = document.entries.filter { word in
+                    !ids.contains(word.id) && WordLevel.meets(word.level, minimum: minimum) && terms.insert(QuickDictionary.normalized(word.w)).inserted
+                }
+                // Easiest first, starting just above what the learner already recalls reliably.
+                let words = WordProgression.next(candidates, count: slots, document: document, cards: existing, minimum: minimum)
                 // This writer saves atomically; it also commits the saved-word cards above.
-                try IELTSCardWriter.add(Array(words), context: context, document: document)
+                try IELTSCardWriter.add(words, context: context, document: document)
             } else { try context.save() }
         } catch {
             inserted.forEach { context.delete($0) }

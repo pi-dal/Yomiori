@@ -2,7 +2,53 @@
 
 2026-10-29：用户已授权全局改名并发布 TestFlight，发布操作使用 `asc`。
 
-## 最新发布：1.0 (6)，每日学习自动化与按钮统一
+## 最新发布：1.1.2 (10)，词汇难度渐进与回忆答案优化
+
+2026-11-11：用户授权「发个新版吧，我又加了一些，同时 commit and push」。沿用 `asc-release-flow`、`asc-xcode-build` 和 `asc-testflight-orchestration` 的发布流程，使用已验证的临时钥匙串签名方式。
+
+- 版本 **1.1.2 (10)**：每日新词在最低 CEFR 等级以上逐步提高难度，按词义／搭配数量估算级内常用程度，并参考实际复习表现选择目标；回忆答案采用正文大小、左对齐，每项显示首个词义。
+- 完整单元／集成测试和相关 UI 回归共 **103 项通过、1 项真机音频测试跳过、0 项失败**；含新增渐进选词测试及 5 项每日学习 UI 验收。其余 UI 场景沿用 Build 9 已完成的验收。详见[本次验收](acceptance/testflight-10.md)。
+- Release arm64 归档及 IPA 导出成功；归档及解包 IPA 严格签名、版本身份、发布权限和隐私清单检查通过。99 个源码／工程／配置文件与构建前快照一致；临时签名钥匙串已删除并恢复原搜索列表。
+- Build／Upload／Beta Review ID：`5cf8577f-5797-4bfe-9372-5f7c37042cea`。Apple 回读：`processingState=VALID`、`internalBuildState=IN_BETA_TESTING`、`externalBuildState=WAITING_FOR_BETA_REVIEW`、`betaReviewState=WAITING_FOR_REVIEW`、`autoNotifyEnabled=true`、`usesNonExemptEncryption=false`。
+- 外部审核提交时间：2026-11-11 23:37:09 PST。Internal Testers 和 Yomiori Email Testers 两组访问关系完整回读；中英文 What to Test 已写入并确认；TestFlight 严格校验零错误／零警告。
+- 产物、测试、签名及 Apple 回执：`/tmp/yomiori-testflight-10/`。IPA SHA-256：`59f8c75568bb3e147426515cff7acf741ffec7337bfc6815fd0c06d44a3a9861`。
+- 此次提交包含自 Build 6 以来尚未提交的学习流程、词书、阅读词汇标记、Coach 联动、测试与发布记录；按用户要求提交并推送至 `origin/main`。
+- 监控：`asc builds build-beta-detail view --build-id 5cf8577f-5797-4bfe-9372-5f7c37042cea --output table`。
+
+## 历史发布：1.1.1 (9)，复习与阅读／Coach 联动
+
+2026-11-11：用户授权「来发个新版，我更新了一些东西」。使用 `asc-release-flow`、`asc-xcode-build`、`asc-testflight-orchestration` 完成上传及测试组分发，以 `asc-submission-health` 回读 Apple 状态。
+
+- 版本 **1.1.1 (9)**：新词在语境中认识后间隔主动回忆，错词在本轮稍后重现，含学习总结及自由练习；阅读器识别已存词汇及支持的日英词形变化；Coach 优先巩固今日词汇，纠错可保存为复习卡；今日学习与成长里程碑互相衔接。
+- 完整测试 **123 项通过、1 项真机音频测试跳过、0 项失败**：94 项单元／集成测试通过，29 项 UI 验收通过。详见[本次验收](acceptance/testflight-9.md)。
+- Release arm64 归档及 IPA 导出成功，归档 App 和解包 IPA 严格签名校验、版本身份、发布权限、隐私清单均通过。临时签名钥匙串已删除并恢复原搜索列表。
+- Build／Upload／Beta Review ID：`82c66e8d-cda5-44cf-843d-7c86179dad6f`。Apple 回读：`processingState=VALID`、`internalBuildState=IN_BETA_TESTING`、`externalBuildState=WAITING_FOR_BETA_REVIEW`、`betaReviewState=WAITING_FOR_REVIEW`、`autoNotifyEnabled=true`、`usesNonExemptEncryption=false`。
+- 外部审核提交时间：2026-11-11 22:30:49 PST。现有 Internal Testers 和 Yomiori Email Testers 两组访问关系已完整回读；中英文 What to Test 已创建并确认。TestFlight 严格校验零错误／零警告。
+- 产物、测试结果、签名校验和 Apple 回执：`/tmp/yomiori-testflight-9/`。IPA SHA-256：`bccd717721fda8768b345fba9c3a01242673e371f813badaf8f5d825f3e61d0b`。
+- 监控：`asc builds build-beta-detail view --build-id 82c66e8d-cda5-44cf-843d-7c86179dad6f --output table`。此次为 TestFlight 发布；代码保留在工作区。
+
+## 历史发布：1.1 (8)，词书计划与引导式学习
+
+2026-11-09：签名归档和 IPA 上传完成。包含词书详情、学习进度、每日目标、今日学习及自由练习入口，以及引导式单词学习流程。
+
+- Build／Upload／Beta Review ID：`108e2ad8-b857-45da-81aa-44567febd5f0`。Apple 处理状态 `VALID`；2026-11-11 回读确认内部及外部均为 `IN_BETA_TESTING`，自动通知开启。
+- 现有 Internal Testers 与 Yomiori Email Testers 两组已获得访问，中英文 What to Test 已写入。
+- 归档及解包 IPA 严格签名校验通过；临时签名钥匙串已清理并恢复原搜索列表。
+- 产物及日志：`/tmp/yomiori-testflight-8/`。IPA SHA-256：`a404a66018f1283a8f25701149459f4b5a2a5aa1ee1adb8d21b9e9626450282a`。
+
+## 历史发布：1.0 (7)，英语词汇难度分级
+
+2026-11-05：用户授权「发版吧」，并要求继续完成。使用 `asc-release-flow`、`asc-xcode-build`、`asc-testflight-orchestration` 执行本次 TestFlight 发布，使用 `asc-submission-health` 回读 Apple 状态。
+
+- 版本 **1.0 (7)**：英语新词默认 B1 及以上，每日设置可选 A1–C2 或全部等级；词表等级随新卡保存并显示于词表行和复习卡。到期旧卡继续复习，无等级词汇仍可学习；旧卡不会自动回填等级。
+- 最终 **77 项单元测试（14 个测试组）通过**，现有 **26 项 UI 验收通过**。新等级选择器的专项视觉验收、build-6 数据库原地迁移尚未执行。参见[英语难度验收](acceptance/word-difficulty.md)。
+- Release arm64 归档及 IPA 导出成功，归档和解包 App 严格签名校验通过，两个隐私清单齐全。临时签名钥匙串已删除，原搜索列表恢复。
+- Build／Upload／Beta Review ID：`1a944478-1e78-40dd-b81c-d97383006938`。Apple 最终回读：`processingState=VALID`、`betaReviewState=APPROVED`、内部和外部均为 `IN_BETA_TESTING`、`autoNotifyEnabled=true`、`usesNonExemptEncryption=false`。
+- 两个现有测试组的完整成员关系已确认，中英文 What to Test 已写入并回读；TestFlight 严格校验零错误／零警告。此次为 TestFlight 发布。
+- 监控：`asc builds build-beta-detail view --build-id 1a944478-1e78-40dd-b81c-d97383006938 --output table`。
+- 产物、日志、中英文 What to Test：`/tmp/yomiori-testflight-7/`。IPA SHA-256：`90b8ea605bdca60ad1268ede0da27c59e5a4be69f47a9ad9ef3277cc7f3930fe`。
+
+## 历史发布：1.0 (6)，每日学习自动化与按钮统一
 
 2026-11-05：用户授权「c，p，发新版」。使用 `asc-release-flow` 上传、关联现有组并提交 Beta 审核，使用 `asc-submission-health` 回读状态。
 
@@ -102,6 +148,8 @@
 签名严格验证通过，application-identifier 为 `6Y2YB464VU.com.pidal.yomiori`，get-task-allow=false。隐私清单已包含在归档中：UserDefaults CA92.1、SystemBootTime 35F9.1；ZIPFoundation 自带相关清单。隐私清单不代替 App Store 隐私问卷。
 
 本机登录钥匙串非交互签名曾报 errSecInternalComponent；归档采用临时签名钥匙串，退出后恢复原搜索列表，不修改现有钥匙串 ACL。包装脚本位于 `/tmp/yomiori-testflight/sign-release.py`、`build-release.py`。原名的未发布签名资源及旧 IPA 保留但不用于此次上传。
+
+后续发版沿用成功的 `/tmp/yomiori-testflight-8/release-build.py` 流程：从 `~/.asc/keys/open-screen-sharing-distribution/distribution.key` 和 `distribution.cer` 导入临时钥匙串，分区权限为 `apple-tool:,apple:,codesign:`，使用 `Config/ExportOptions-TestFlight.plist` 导出，在 `finally` 恢复搜索列表并删除临时钥匙串。普通发版无需导出 login 私钥、调整系统证书信任或撤销 Distribution 证书。签名流程及排障教训已保存至 nmem 记忆 `93948758-c0cd-4b49-8f15-4b179cb8b4d1`。
 
 ## 验证
 

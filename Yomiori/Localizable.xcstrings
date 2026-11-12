@@ -5903,23 +5903,6 @@
         }
       }
     },
-    "review.a11yPosition": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Card %lld of %lld"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "第 %lld 张，共 %lld 张"
-          }
-        }
-      }
-    },
     "Card %lld of %lld": {
       "extractionState": "manual",
       "localizations": {
@@ -14380,23 +14363,6 @@
         }
       }
     },
-    "study.keepReading": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep reading"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "接着读一会儿"
-          }
-        }
-      }
-    },
     "study.prepareError": {
       "extractionState": "manual",
       "localizations": {
@@ -14446,6 +14412,104 @@
             "value": "每天最多学习 %lld 个新词"
           }
         }
+      }
+    },
+    "wordBook.percent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%lld% learned" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已学 %lld%" } }
+      }
+    },
+    "wordBook.learnedSummary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%lld of %lld words learned" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已学 %lld / %lld 个词" } }
+      }
+    },
+    "wordBook.total": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Total" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "总词数" } }
+      }
+    },
+    "wordBook.learned": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Learned" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已学" } }
+      }
+    },
+    "wordBook.due": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Due" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "待复习" } }
+      }
+    },
+    "wordBook.new": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "New" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "新词" } }
+      }
+    },
+    "wordBook.mistakes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Needs work" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "易错词" } }
+      }
+    },
+    "wordBook.todayGoal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Daily new words" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "每日新词" } }
+      }
+    },
+    "wordBook.todayIntroduced": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%lld added today" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "今日已新增 %lld 个" } }
+      }
+    },
+    "wordBook.startDaily": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Start today's study" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "开始今日学习" } }
+      }
+    },
+    "study.wordBook": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Current word book" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "当前词书" } }
+      }
+    },
+    "study.bookProgress": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%lld / %lld learned" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已学 %lld / %lld" } }
+      }
+    },
+    "study.savedBookDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Use words you saved from reading and lookup." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "使用你在阅读和查词时保存的词。" } }
+      }
+    },
+    "study.automaticBookDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Choose from saved words and the available word book automatically." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "自动从收藏词和当前可用词书中选择。" } }
       }
     },
     "study.source": {
@@ -14788,6 +14852,361 @@
         }
       }
     },
+    "study.minimumLevel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minimum word level"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最低词汇等级"
+          }
+        }
+      }
+    },
+    "study.levelAndAbove": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ and above"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 及以上"
+          }
+        }
+      }
+    },
+    "study.minimumLevelSummary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New words: %@ and above"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新词：%@ 及以上"
+          }
+        }
+      }
+    },
+    "journey.open": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Learning path" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "学习路径" } }
+      }
+    },
+    "journey.today": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Today" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "今天" } }
+      }
+    },
+    "journey.todaySummary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%lld of %lld anchors complete" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已完成 %lld / %lld 个锚点" } }
+      }
+    },
+    "journey.todayStats": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%@ immersed · %lld cards reviewed" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "沉浸 %@ · 复习 %lld 张卡片" } }
+      }
+    },
+    "journey.action.immerse": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Return to your content" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "回到你喜欢的内容" } }
+      }
+    },
+    "journey.action.discover": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Save one discovery" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "留下一个新发现" } }
+      }
+    },
+    "journey.action.express": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Try one sentence" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "试着说或写一句" } }
+      }
+    },
+    "journey.routine.review": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Review what is due" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "复习该复习的词" } }
+      }
+    },
+    "journey.routine.immerse": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Immerse actively or passively" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "主动或被动地沉浸" } }
+      }
+    },
+    "journey.routine.discover": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Keep one useful discovery" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "留下一个有用的发现" } }
+      }
+    },
+    "journey.routine.express": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Use it with Coach" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "用 Coach 试着表达" } }
+      }
+    },
+    "journey.routine.done": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Done for today" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "今天已完成" } }
+      }
+    },
+    "journey.routine.saved": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "A discovery is saved" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已经留下一个发现" } }
+      }
+    },
+    "journey.routine.reviewDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%lld cards are waiting" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "还有 %lld 张卡片等你复习" } }
+      }
+    },
+    "journey.routine.immerseDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Spend about %lld minutes with something you enjoy" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "和喜欢的内容相处约 %lld 分钟" } }
+      }
+    },
+    "journey.routine.discoverDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Look up a word or save a line" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "查一个词，或保存一行内容" } }
+      }
+    },
+    "journey.routine.expressDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Say or write one thing you noticed" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "说或写下一个你注意到的表达" } }
+      }
+    },
+    "journey.roadmap": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "The long route" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "长期路线" } }
+      }
+    },
+    "journey.currentFocus": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Your current focus" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "你现在的重点" } }
+      }
+    },
+    "journey.phase.foundation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Build the foundation" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "建立基础" } }
+      }
+    },
+    "journey.phase.foundationDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Make review and contact with the language easy to repeat." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "让复习和接触语言变成容易重复的事。" } }
+      }
+    },
+    "journey.phase.understanding": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Build understanding" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "提升理解" } }
+      }
+    },
+    "journey.phase.understandingDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Choose content that keeps you curious and gradually become comfortable with ambiguity." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "选择能让你保持好奇的内容，逐渐习惯暂时不懂。" } }
+      }
+    },
+    "journey.phase.expression": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Start expressing" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "开始表达" } }
+      }
+    },
+    "journey.phase.expressionDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Use what you have understood, then return to input when you get stuck." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "把已经理解的内容用出来，卡住时再回到输入。" } }
+      }
+    },
+    "journey.phase.expansion": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Keep expanding" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "持续扩展" } }
+      }
+    },
+    "journey.phase.expansionDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Repeat the loop with new topics, voices and forms of expression." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "把这个循环带到新的主题、声音和表达方式中。" } }
+      }
+    },
+    "journey.milestones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Milestones" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "里程碑" } }
+      }
+    },
+    "study.freePractice": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Free practice" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "自由练习" } }
+      }
+    },
+    "study.freePracticeDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Practice every card in this language without changing today’s review budget." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "练习当前语言的全部卡片，不改变今天的复习预算。" } }
+      }
+    },
+    "review.freePractice": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Free practice" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "自由练习" } }
+      }
+    },
+    "review.freeBadge": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Free practice" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "自由练习" } }
+      }
+    },
+    "review.new": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "New" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "新词" } }
+      }
+    },
+    "review.dueNow": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Due now" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "现在复习" } }
+      }
+    },
+    "review.learning": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Learning" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "学习中" } }
+      }
+    },
+    "review.scheduled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Scheduled" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已排期" } }
+      }
+    },
+    "review.freeFinished": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "You practiced every available card. Your daily schedule is unchanged." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "你已经练习了当前全部卡片，今日复习计划没有改变。" } }
+      }
+    },
+    "review.level": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Level: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等级：%@"
+          }
+        }
+      }
+    },
+    "review.stepQuiz": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Recall" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "主动回忆" } }
+      }
+    },
+    "review.stepFeedback": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Memory feedback" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "记忆反馈" } }
+      }
+    },
+    "review.quizPrompt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "What does the highlighted word mean here?" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "标出的词在这里是什么意思？" } }
+      }
+    },
+    "review.seeAnswer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "See the meaning" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "查看词义" } }
+      }
+    },
     "study.defaultReminder": {
       "extractionState": "manual",
       "localizations": {
@@ -14803,6 +15222,384 @@
             "value": "默认每天 20:00 提醒，可在设置中修改时间。"
           }
         }
+      }
+    },
+    "review.gotIt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Got it" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "知道了" } }
+      }
+    },
+    "review.dontKnow": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "I don’t remember" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "想不起来" } }
+      }
+    },
+    "review.forgot": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Forgot" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "没想起来" } }
+      }
+    },
+    "review.remembered": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Remembered" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "想起来了" } }
+      }
+    },
+    "review.next": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Continue" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "继续" } }
+      }
+    },
+    "review.nextReview": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Next review in %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%@后再复习" } }
+      }
+    },
+    "review.adjust": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%1$@ · %2$@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%1$@ · %2$@" } }
+      }
+    },
+    "review.wasHard": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "That was hard" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "有点难" } }
+      }
+    },
+    "review.tooEasy": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Too easy" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "太简单" } }
+      }
+    },
+    "review.stepNew": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "New word" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "新词" } }
+      }
+    },
+    "review.introPrompt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Meet it in its sentence. It comes back in a moment for a quick recall." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "先在句子里认识它。稍后它会再出现，请你回忆词义。" } }
+      }
+    },
+    "review.recallSelfPrompt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Recall what the highlighted word means, then check." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "先回想标出的词是什么意思，再查看答案。" } }
+      }
+    },
+    "review.recalled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "You remembered it." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "记住了。" } }
+      }
+    },
+    "review.missed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Not this time." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "这次没想起来。" } }
+      }
+    },
+    "review.yourChoice": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "You chose: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "你选的是：%@" } }
+      }
+    },
+    "review.returnsSoon": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "It comes back in a few cards." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "过几张卡片后它会再出现。" } }
+      }
+    },
+    "review.returnsLater": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Moving on for now. It will come back another time." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "先往下走，之后它还会再出现。" } }
+      }
+    },
+    "review.selfCheck": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Did you remember it?" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "你想起来了吗？" } }
+      }
+    },
+    "review.moreRound": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Practice %lld more" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "再练 %lld 个" } }
+      }
+    },
+    "review.roundDone": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Round complete" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "本轮完成" } }
+      }
+    },
+    "review.summaryStats": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%1$lld recalled · %2$lld new · %3$lld to revisit" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "记住 %1$lld 个 · 新词 %2$lld 个 · 待巩固 %3$lld 个" } }
+      }
+    },
+    "review.revisitTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Worth another look" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "值得再看一眼" } }
+      }
+    },
+    "review.backToSource": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Back to where these words came from" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "回到这些词出现的地方" } }
+      }
+    },
+    "review.a11yProgress": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%1$lld of %2$lld words done" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已完成 %1$lld / %2$lld 个词" } }
+      }
+    },
+    "list.separator": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": ", " } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "、" } }
+      }
+    },
+    "review.practiseWithCoach": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Use these words with Coach" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "和 Coach 一起用这些词" } }
+      }
+    },
+    "review.coachPrompt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Let’s practise these words in a short conversation: %@. Start with one easy question that uses one of them." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "我们用一段简短的对话练习这些词：%@。先用其中一个词问我一个简单的问题。" } }
+      }
+    },
+    "read.studyLearning": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "You’re learning this word" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "你正在学这个词" } }
+      }
+    },
+    "read.studyKnown": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "This word has stuck" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "这个词你已经记牢了" } }
+      }
+    },
+    "read.metBefore": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "You first met it here:" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "你第一次在这里遇见它：" } }
+      }
+    },
+    "read.nextReview": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Next review: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "下次复习：%@" } }
+      }
+    },
+    "correction.addToReview": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Add to review" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "加入复习" } }
+      }
+    },
+    "correction.added": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "In review" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已加入复习" } }
+      }
+    },
+    "correction.meaning": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%1$@ (instead of %2$@)" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%1$@（不是 %2$@）" } }
+      }
+    },
+    "correction.instead": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Instead of %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "不是 %@" } }
+      }
+    },
+    "journey.openDetail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Words stuck: %1$lld · active %2$lld of 7 days this week" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已记牢 %1$lld 个词 · 本周活跃 %2$lld / 7 天" } }
+      }
+    },
+    "journey.progress": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Progress" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "进展" } }
+      }
+    },
+    "journey.wordsStuck": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Words that stuck" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "记牢的词" } }
+      }
+    },
+    "journey.wordsCount": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": { "stringUnit": { "state": "translated", "value": "%lld word" } },
+              "other": { "stringUnit": { "state": "translated", "value": "%lld words" } }
+            }
+          }
+        },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%lld 个词" } }
+      }
+    },
+    "journey.weekActive": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Active this week" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "本周活跃" } }
+      }
+    },
+    "journey.weekValue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%lld of 7 days" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%lld / 7 天" } }
+      }
+    },
+    "journey.totalImmersion": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Total immersion" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "累计沉浸" } }
+      }
+    },
+    "journey.wordsCollected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Words collected" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "收集的词" } }
+      }
+    },
+    "journey.stuckHelp": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "A word has stuck once you recall it well enough to wait three weeks before the next review. Missed days never take progress away." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "一个词的复习间隔达到三周，就算记牢了。错过的日子不会让进展倒退。" } }
+      }
+    },
+    "journey.track.words": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Words that stuck" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "记牢的词" } }
+      }
+    },
+    "journey.track.hours": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Hours immersed" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "沉浸小时数" } }
+      }
+    },
+    "journey.track.days": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Active days" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "活跃天数" } }
+      }
+    },
+    "journey.track.expressions": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Your own expressions" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "自己的表达" } }
+      }
+    },
+    "journey.track.reachedNext": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Reached %1$lld · next at %2$lld" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已达成 %1$lld · 下一个 %2$lld" } }
+      }
+    },
+    "journey.track.next": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "First milestone at %lld" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "第一个里程碑：%lld" } }
+      }
+    },
+    "journey.phase.foundationProgress": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%lld of 7 active days" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已活跃 %lld / 7 天" } }
+      }
+    },
+    "journey.phase.understandingProgress": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%1$@ of 10 h immersed · %2$lld of 50 words stuck" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "沉浸 %1$@ / 10 小时 · 记牢 %2$lld / 50 个词" } }
+      }
+    },
+    "journey.phase.expressionProgress": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%lld of 20 messages to Coach" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已给 Coach 发 %lld / 20 条消息" } }
       }
     }
   },

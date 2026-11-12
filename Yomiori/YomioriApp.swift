@@ -53,14 +53,17 @@ enum AppTab: Hashable { case read, documents, dictionary, coach }
 @Observable
 final class AppState {
     var tab: AppTab = .read
+    /// Today: the plan, progress and next steps.
     var showStudy = false
+    /// Today's review, opened directly so starting study is one tap.
+    var showReview = false
     var pendingCoachPrompt: String?
     var pendingContext: String?
     /// "Go to source": open a subtitle at a time, or a PDF at a page.
     var jumpMaterial: (id: String, time: Double)?
     var jumpDoc: (id: String, page: Int)?
     func resetNavigation() {
-        tab = .read; showStudy = false; pendingCoachPrompt = nil; pendingContext = nil; jumpMaterial = nil; jumpDoc = nil
+        tab = .read; showStudy = false; showReview = false; pendingCoachPrompt = nil; pendingContext = nil; jumpMaterial = nil; jumpDoc = nil
     }
     func goToSource(_ e: DictEntry) {
         if e.sourceKind == "subtitle" { jumpMaterial = (e.sourceID, e.sourcePos); tab = .read }
@@ -108,5 +111,6 @@ struct RootView: View {
         .tabBarMinimizeBehavior(.onScrollDown)
         .modifier(StudyLifecycle())
         .fullScreenCover(isPresented: $app.showStudy) { DailyStudyView() }
+        .fullScreenCover(isPresented: $app.showReview) { ReviewView(session: .daily) }
     }
 }

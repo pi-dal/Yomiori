@@ -13,6 +13,9 @@ import SwiftData
     var languageCode: String = "ja"
     var wordListID: String = ""
     var wordListEntryID: String = ""
+    /// CEFR level copied from the word-list entry when this card is created.
+    /// Cards from dictionary lookups may leave it empty because they have no corpus rank.
+    var wordLevel: String = ""
     var audioRemoteURL: String = ""
     var definitionEnglish: String = ""
     var audioFile: String?

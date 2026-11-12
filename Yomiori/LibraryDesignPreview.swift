@@ -44,11 +44,18 @@ struct LibraryDesignPreview: View {
                     preferences.set(2, forKey: "study.newLimit")
                     preferences.set("saved", forKey: "study.source")
                     preferences.set(false, forKey: "study.autoCards")
-                    for index in 1...5 {
-                        let card = Card(sentence: "毎日、少しずつ学びます。", word: "毎日 \(index)")
-                        card.meaning = "Learn a little every day."
-                        card.reps = index <= 3 ? 1 : 0
+                    // Distinct synthetic words, so recall has real alternatives to choose from.
+                    let words = [("毎日、少しずつ学びます。", "毎日", "every day"),
+                                 ("京都の朝は静かです。", "静か", "quiet"),
+                                 ("小さな喫茶店で本を読みます。", "喫茶店", "café"),
+                                 ("今日は何を読もうか。", "読む", "to read"),
+                                 ("新しい言葉を覚えます。", "覚える", "to remember")]
+                    for (index, word) in words.enumerated() {
+                        let card = Card(sentence: word.0, word: word.1)
+                        card.meaning = word.2
+                        card.reps = index < 3 ? 1 : 0
                         card.due = Date().addingTimeInterval(-60)
+                        card.createdAt = Date().addingTimeInterval(Double(index))
                         context.insert(card)
                     }
                     try? context.save()

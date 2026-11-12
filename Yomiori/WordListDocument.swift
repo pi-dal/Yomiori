@@ -12,6 +12,27 @@ struct WordListSource: Codable, Sendable, Equatable {
     var contentType: String
 }
 
+enum WordLevel {
+    static let ordered = ["A1", "A2", "B1", "B2", "C1", "C2"]
+
+    static func rank(_ value: String) -> Int? {
+        ordered.firstIndex(of: value.uppercased())
+    }
+
+    static func normalized(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let level = value.uppercased()
+        return rank(level) == nil ? nil : level
+    }
+
+    /// An unranked card remains eligible so imported or saved vocabulary is never stranded.
+    static func meets(_ value: String, minimum: String?) -> Bool {
+        guard let minimum = normalized(minimum), let minimumRank = rank(minimum) else { return true }
+        guard let cardRank = rank(value) else { return true }
+        return cardRank >= minimumRank
+    }
+}
+
 struct AtlasWord: Codable, Identifiable, Sendable, Equatable {
     struct Sense: Codable, Sendable, Equatable {
         var partOfSpeech: String

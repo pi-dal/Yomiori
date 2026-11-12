@@ -25,7 +25,10 @@ struct StudyLifecycle: ViewModifier {
     }
     private func route(_ value: Bool) {
         guard value, !Operations.shared.resetPending else { return }
-        reminders.openStudy = false; app.tab = .read; app.showStudy = true
+        reminders.openStudy = false; app.tab = .read
+        // A reminder opens review when there is something to review, otherwise Today.
+        let cards = (try? context.fetch(FetchDescriptor<Card>())) ?? []
+        if DailyStudy.plan(cards, defaults: defaults).queue.isEmpty { app.showStudy = true } else { app.showReview = true }
     }
     private func refresh() async {
         let generation = Operations.shared.generation

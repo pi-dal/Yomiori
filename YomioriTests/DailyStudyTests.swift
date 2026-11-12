@@ -28,6 +28,35 @@ import UserNotifications
         #expect(tomorrow.completed == 0 && tomorrow.remaining == 2)
     }
 
+    @Test func journeySnapshotConnectsRealActivityToTheDailyLoop() throws {
+        let store = try ModelContainer(for: Card.self, DictEntry.self, ImmersionLog.self, ChatMsg.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        defer { withExtendedLifetime(store) {} }
+        let context = store.mainContext, d = defaults()
+        d.set("ja", forKey: "targetLang")
+        d.set(60, forKey: "dailyGoal")
+        let card = Card(sentence: "今日は読む", word: "読む")
+        card.due = now
+        context.insert(card)
+        let log = ImmersionLog(day: Calendar.current.startOfDay(for: now), seconds: 3600, kind: "reading")
+        let entry = DictEntry(term: "読む", kind: "word", sourceKind: "subtitle")
+        entry.createdAt = now
+        let message = ChatMsg(role: "user", content: "読む")
+        message.createdAt = now
+        context.insert(log); context.insert(entry); context.insert(message)
+        try context.save()
+
+        let beforeReview = LearningJourneySnapshot.make(cards: [card], logs: [log], entries: [entry], messages: [message], defaults: d, now: now)
+        #expect(!beforeReview.reviewDone)
+        #expect(beforeReview.immersionDone && beforeReview.discoveryDone)
+        // Immersion, a saved word and a Coach message: three of the four anchors.
+        #expect(beforeReview.todayStepsDone == 3 && LearningJourneySnapshot.anchorCount == 4)
+        #expect(beforeReview.totalWords == 1 && beforeReview.coachMessages == 1)
+
+        try DailyStudy.rate(card, rating: .good, context: context, now: now)
+        let afterReview = LearningJourneySnapshot.make(cards: [card], logs: [log], entries: [entry], messages: [message], defaults: d, now: now)
+        #expect(afterReview.reviewDone && afterReview.todayStepsDone == 4)
+        #expect(afterReview.activeDays == 1 && afterReview.activeDaysThisWeek == 1 && afterReview.totalCoachMessages == 1)
+    }
     @Test func againWaitsTenMinutesAndDoesNotConsumeAnotherNewSlot() throws {
         let store = try container(), context = store.mainContext
         defer { withExtendedLifetime(store) {} }
@@ -42,6 +71,26 @@ import UserNotifications
         #expect(StudyPlan(cards: [card], reviewLimit: 10, newLimit: 1, now: now.addingTimeInterval(602)).completed == 1)
     }
 
+    @Test func freePracticeIgnoresDailyBudgetButKeepsLanguageAndPriority() {
+        let d = defaults()
+        d.set("ja", forKey: "targetLang")
+        d.set(1, forKey: "reviewLimit")
+        let due = Card(sentence: "due", word: "due")
+        due.reps = 1; due.due = now.addingTimeInterval(-10)
+        let fresh = Card(sentence: "fresh", word: "fresh")
+        fresh.due = now
+        let later = Card(sentence: "later", word: "later")
+        later.reps = 2; later.interval = 5; later.due = now.addingTimeInterval(86_400)
+        let otherLanguage = Card(sentence: "other", word: "other")
+        otherLanguage.languageCode = "en"; otherLanguage.due = now
+
+        let practice = FreePractice.cards([later, otherLanguage, fresh, due], defaults: d, now: now)
+        #expect(practice.map(\.word) == ["due", "fresh", "later"])
+        #expect(StudyPlan(cards: [later, otherLanguage, fresh, due], reviewLimit: 1, newLimit: 0, language: "ja", now: now).queue.count == 1)
+        #expect(StudyCardStatus.key(fresh, now: now) == "review.new")
+        #expect(StudyCardStatus.key(due, now: now) == "review.dueNow")
+        #expect(StudyCardStatus.key(later, now: now) == "review.scheduled")
+    }
     @Test func preparedNewWordsAreBoundedDeduplicatedAndLanguageAware() throws {
         let store = try container(), context = store.mainContext, d = defaults()
         defer { withExtendedLifetime(store) {} }
@@ -54,6 +103,7 @@ import UserNotifications
         #expect(cards.count == 3)
         #expect(Set(cards.map { QuickDictionary.normalized($0.word) }).count == 3)
         #expect(cards.allSatisfy { $0.languageCode == "en" })
+        #expect(cards.allSatisfy { WordLevel.rank($0.wordLevel) ?? -1 >= WordLevel.rank("B1")! })
         d.set("ja", forKey: "targetLang")
         try DailyStudy.prepare(context: context, documents: [document], defaults: d)
         #expect(try context.fetch(FetchDescriptor<Card>()).count == 3)
@@ -122,6 +172,25 @@ import UserNotifications
         #expect(client.pending.isEmpty)
         reminders.handleDestination("other"); #expect(!reminders.openStudy)
         reminders.handleDestination("daily-study"); #expect(reminders.openStudy)
+    }
+
+    @Test func minimumEnglishLevelKeepsNewWordsChallenging() {
+        let easy = Card(sentence: "easy", word: "easy"); easy.languageCode = "en"; easy.wordLevel = "A1"; easy.createdAt = now.addingTimeInterval(-3); easy.due = now
+        let target = Card(sentence: "target", word: "target"); target.languageCode = "en"; target.wordLevel = "B1"; target.createdAt = now.addingTimeInterval(-2); target.due = now
+        let hard = Card(sentence: "hard", word: "hard"); hard.languageCode = "en"; hard.wordLevel = "C1"; hard.createdAt = now.addingTimeInterval(-1); hard.due = now
+        let plan = StudyPlan(cards: [easy, target, hard], reviewLimit: 10, newLimit: 3, language: "en", minimumLevel: "B1", now: now)
+        #expect(plan.minimumLevel == "B1")
+        #expect(plan.queue.map(\.word) == ["target", "hard"])
+    }
+
+    @Test func englishGetsAUsefulDefaultMinimumLevel() {
+        let d = defaults()
+        d.set("en", forKey: "targetLang")
+        #expect(DailyStudy.minimumLevel(d) == "B1")
+        d.set("all", forKey: DailyStudy.minimumLevelKey)
+        #expect(DailyStudy.minimumLevel(d) == nil)
+        d.set("ja", forKey: "targetLang")
+        #expect(DailyStudy.minimumLevel(d) == nil)
     }
 
     @Test func oldReviewBacklogPreventsNewWordFlood() {

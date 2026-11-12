@@ -10,6 +10,8 @@ struct CoachView: View {
     @AppStorage("coachStage") private var stage = CoachStage.beginner.rawValue
     private var msgs: [ChatMsg] { allMessages.filter { $0.languageCode == languageCode } }
     @Query private var mistakes: [Mistake]
+    @Query(filter: #Predicate<Card> { $0.sourceKind == "coach" }) private var correctionCards: [Card]
+    @State private var correctionError: String?
     @State private var input = ""
     @State private var session = CoachSession()
     private var streaming: String? { session.streaming }
@@ -41,6 +43,9 @@ struct CoachView: View {
             } }
             #endif
             .navigationTitle("Coach").navigationBarTitleDisplayMode(.large)
+            .alert("Couldn't save", isPresented: Binding(get: { correctionError != nil }, set: { if !$0 { correctionError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: { Text(correctionError ?? "") }
             .sheet(isPresented: $showingLive) { LiveCoachView(language: languageCode) }
             .sheet(isPresented: $showingLookup) { QuickDictionaryView(sentence: lookupSentence, initialLanguage: languageCode) }
             .sheet(isPresented: $showingAI) {
@@ -200,12 +205,24 @@ struct CoachView: View {
             }.buttonStyle(TextActionStyle())
             if m.role == "user" {
                 ForEach(m.corrections, id: \.self) { c in
-                    Button { showWeak = true } label: {
-                        Text("\(Text(c.wrong).strikethrough().foregroundStyle(Theme.vermilion)) → \(Text(c.right).fontWeight(.semibold).foregroundStyle(Theme.ink))\n\(c.reason)")
-                            .font(Theme.Fonts.meta).multilineTextAlignment(.leading)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Button { showWeak = true } label: {
+                            Text("\(Text(c.wrong).strikethrough().foregroundStyle(Theme.vermilion)) → \(Text(c.right).fontWeight(.semibold).foregroundStyle(Theme.ink))\n\(c.reason)")
+                                .font(Theme.Fonts.meta).multilineTextAlignment(.leading)
+                        }
+                        .buttonStyle(.plain).frame(minHeight: 44, alignment: .leading)
+                        .accessibilityLabel([c.wrong, c.right, c.reason].joined(separator: "\n"))
+                        // The corrected form becomes a review card in the learner's own sentence.
+                        let added = CorrectionCards.exists(c, message: m, in: correctionCards)
+                        Button {
+                            do { try CorrectionCards.add(c, message: m, context: ctx); UINotificationFeedbackGenerator().notificationOccurred(.success) }
+                            catch { correctionError = error.localizedDescription }
+                        } label: {
+                            Label(added ? "correction.added" : "correction.addToReview", systemImage: added ? "checkmark" : "plus.rectangle.on.rectangle")
+                        }
+                        .buttonStyle(TextActionStyle()).disabled(added)
+                        .accessibilityIdentifier("coach.correctionCard")
                     }
-                    .buttonStyle(.plain).frame(minHeight: 44, alignment: .leading)
-                    .accessibilityLabel([c.wrong, c.right, c.reason].joined(separator: "\n"))
                 }
             }
         }

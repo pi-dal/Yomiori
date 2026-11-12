@@ -8,15 +8,16 @@ struct TappableText: View {
     var lineSpacing: CGFloat = 4
     var highlighted = false
     var washed: (String) -> Bool = { _ in false }
+    var studyMarks: [String: StudyLexicon.Stage] = [:]
     let onTap: (String) -> Void
 
     var body: some View {
         if furigana && language == "ja" {
             RubyTappableText(text: text, language: language, furigana: true, pointSize: pointSize,
-                            lineSpacing: lineSpacing, highlighted: highlighted, washed: washed, onTap: onTap)
+                            lineSpacing: lineSpacing, highlighted: highlighted, washed: washed, studyMarks: studyMarks, onTap: onTap)
         } else {
             LitextTappableText(text: text, language: language, furigana: false, pointSize: pointSize,
-                              lineSpacing: lineSpacing, highlighted: highlighted, washed: washed, onTap: onTap)
+                              lineSpacing: lineSpacing, highlighted: highlighted, washed: washed, studyMarks: studyMarks, onTap: onTap)
         }
     }
 }

@@ -11,10 +11,13 @@ import CoreText
         let attributedText: NSAttributedString
         let words: [Word]
         let highlights: [NSRange]
+        /// Card words met while reading: still being learned, or already stuck.
+        var learning: [NSRange] = []
+        var known: [NSRange] = []
     }
     static func make(text: String, language: String, furigana: Bool, pointSize: CGFloat,
                      rubySize: CGFloat, lineSpacing: CGFloat, ink: UIColor, supporting: UIColor,
-                     highlighted: Bool, selectedWords: [String]) -> Content {
+                     highlighted: Bool, selectedWords: [String], studyMarks: [String: StudyLexicon.Stage] = [:]) -> Content {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byWordWrapping
         paragraph.lineSpacing = lineSpacing
@@ -29,7 +32,7 @@ import CoreText
             .paragraphStyle: paragraph,
             NSAttributedString.Key(kCTLanguageAttributeName as String): language
         ])
-        var offset = 0, words: [Word] = [], highlights: [NSRange] = []
+        var offset = 0, words: [Word] = [], highlights: [NSRange] = [], learning: [NSRange] = [], known: [NSRange] = []
         for (token, isWord) in Words.tokens(text, language: language) {
             let range = NSRange(location: offset, length: (token as NSString).length)
             defer { offset += range.length }
@@ -38,6 +41,11 @@ import CoreText
                 content.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
             }
             guard isWord else { continue }
+            switch studyMarks[token] {
+            case .learning: learning.append(range)
+            case .known: known.append(range)
+            case nil: break
+            }
             words.append(.init(text: token, range: range))
             // An internal link gives Litext native tap/press handling. It is never opened externally.
             content.addAttribute(.link, value: URL(string: "yomiori-word://lookup/\(range.location)")!, range: range)
@@ -49,6 +57,6 @@ import CoreText
                 content.addAttribute(NSAttributedString.Key(kCTRubyAnnotationAttributeName as String), value: ruby, range: range)
             }
         }
-        return Content(attributedText: content, words: words, highlights: highlights)
+        return Content(attributedText: content, words: words, highlights: highlights, learning: learning, known: known)
     }
 }

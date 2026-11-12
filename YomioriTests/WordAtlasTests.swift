@@ -34,6 +34,7 @@ struct WordAtlasTests {
         let english = try #require(cards.first { $0.wordListEntryID == first.id })
         #expect(english.languageCode == "en")
         #expect(english.wordListID == "ielts")
+        #expect(english.wordLevel == first.level)
         #expect(!english.definitionEnglish.isEmpty)
         #expect(english.definitionJa.isEmpty)
         #expect(japanese.languageCode == "ja")

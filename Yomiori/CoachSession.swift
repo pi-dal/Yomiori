@@ -131,11 +131,12 @@ final class CoachSession {
 
 @MainActor private enum CoachPrompts {
     static func conversation(language: String, context: String?, modelContext: ModelContext) throws -> String {
-        var cards = FetchDescriptor<Card>(predicate: #Predicate { $0.languageCode == language }, sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
-        cards.fetchLimit = 10
+        let cards = FetchDescriptor<Card>(predicate: #Predicate { $0.languageCode == language })
         var entries = FetchDescriptor<DictEntry>(predicate: #Predicate { $0.languageCode == language }, sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
         entries.fetchLimit = 15
-        let mined = try modelContext.fetch(cards).map { "\($0.sentence) (\($0.word))" }.joined(separator: "; ")
+        // Words missed or met today come first, so conversation reinforces what review just exposed.
+        let focus = CoachFocus.words(try modelContext.fetch(cards), language: language)
+        let mined = focus.map { "\($0.sentence) (\($0.word))" }.joined(separator: "; ")
         let words = try modelContext.fetch(entries).map(\.term).joined(separator: ", ")
         let mistakes = try modelContext.fetch(FetchDescriptor<Mistake>(predicate: #Predicate { $0.languageCode == language }))
         let top = Dictionary(grouping: mistakes, by: \.pattern).sorted { $0.value.count > $1.value.count }.prefix(5).map { "\($0.key) (\($0.value.count)x)" }.joined(separator: ", ")
@@ -144,7 +145,7 @@ final class CoachSession {
         You are Coach, a friendly \(target.name) tutor for a learner whose native language is \(native.name). Keep replies under 120 words and end with a question. Do not list mistakes unless asked; they are tracked separately.
         \(CoachStage.current.promptRule)
         For Beginner stage, put each target-language sentence on its own line with its native-language translation in parentheses on the next line. Never mix languages inside a sentence. For other stages follow the stage's language rule.
-        Mined sentences: \(mined.isEmpty ? "none" : mined). Known weaknesses: \(top.isEmpty ? "none yet" : top). Saved words: \(words.isEmpty ? "none" : words).
+        Words the learner is consolidating now, most important first: \(mined.isEmpty ? "none" : mined). Use one or two of them naturally when it fits; do not quiz unless asked. Known weaknesses: \(top.isEmpty ? "none yet" : top). Saved words: \(words.isEmpty ? "none" : words).
         \(context.map { "The learner is studying: \($0)." } ?? "")
         If asked about weaknesses, use the known weaknesses with examples honestly in \(native.name).
         """

@@ -47,6 +47,7 @@ struct LitextTappableText: UIViewRepresentable {
     var lineSpacing: CGFloat = 4
     var highlighted = false
     var washed: (String) -> Bool = { _ in false }
+    var studyMarks: [String: StudyLexicon.Stage] = [:]
     let onTap: (String) -> Void
     @ScaledMetric(relativeTo: .caption) private var rubySize: CGFloat = 14
     @Environment(\.colorScheme) private var colorScheme
@@ -57,7 +58,7 @@ struct LitextTappableText: UIViewRepresentable {
         let selectedWords = Words.tokens(text, language: language).filter { $0.1 && washed($0.0) }.map(\.0)
         let key = RenderKey(text: text, language: language, furigana: furigana,
                             pointSize: pointSize, rubySize: rubySize, lineSpacing: lineSpacing,
-                            highlighted: highlighted, selectedWords: selectedWords, dark: colorScheme == .dark)
+                            highlighted: highlighted, selectedWords: selectedWords, dark: colorScheme == .dark, studyMarks: studyMarks)
         guard view.renderedKey != key else { return }
         view.renderedKey = key
         let traits = UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
@@ -68,8 +69,9 @@ struct LitextTappableText: UIViewRepresentable {
         let content = ReaderTextContent.make(text: text, language: language, furigana: furigana,
             pointSize: pointSize, rubySize: rubySize, lineSpacing: lineSpacing, ink: ink,
             supporting: UIColor(Theme.textSecondary).resolvedColor(with: traits),
-            highlighted: highlighted, selectedWords: selectedWords)
-        view.configure(content, language: language, highlight: highlight)
+            highlighted: highlighted, selectedWords: selectedWords, studyMarks: studyMarks)
+        view.configure(content, language: language, highlight: highlight,
+                       study: StudyStroke(traits: traits))
     }
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: ReaderTextLabel, context: Context) -> CGSize? {
         guard let width = proposal.width, width > 0, width.isFinite else { return nil }
@@ -82,6 +84,7 @@ struct LitextTappableText: UIViewRepresentable {
         let highlighted: Bool
         let selectedWords: [String]
         let dark: Bool
+        var studyMarks: [String: StudyLexicon.Stage] = [:]
     }
 }
 
@@ -102,9 +105,10 @@ final class ReaderTextLabel: TextLabelView, TextLabelViewDelegate {
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(_ content: ReaderTextContent.Content, language: String, highlight: UIColor) {
+    func configure(_ content: ReaderTextContent.Content, language: String, highlight: UIColor, study: StudyStroke? = nil) {
         words = content.words
-        lineRenderer = ReaderHighlightRenderer(ranges: content.highlights, color: highlight)
+        lineRenderer = ReaderHighlightRenderer(ranges: content.highlights, color: highlight,
+                                               learning: content.learning, known: content.known, study: study)
         attributedText = content.attributedText
         accessibilityLabel = content.attributedText.string
         accessibilityLanguage = language
@@ -131,7 +135,11 @@ final class ReaderTextLabel: TextLabelView, TextLabelViewDelegate {
 @MainActor private final class ReaderHighlightRenderer: TextLabel.LineRenderer {
     let ranges: [NSRange]
     let color: UIColor
-    init(ranges: [NSRange], color: UIColor) { self.ranges = ranges; self.color = color }
+    let learning: [NSRange], known: [NSRange]
+    let study: StudyStroke?
+    init(ranges: [NSRange], color: UIColor, learning: [NSRange], known: [NSRange], study: StudyStroke?) {
+        self.ranges = ranges; self.color = color; self.learning = learning; self.known = known; self.study = study
+    }
     override func drawBackground(of line: CTLine, at index: Int, in context: CGContext, layout: TextLabel.Layout) {
         let lineRange = CTLineGetStringRange(line)
         let origin = context.textPosition
@@ -144,6 +152,36 @@ final class ReaderTextLabel: TextLabelView, TextLabelViewDelegate {
             let start = CTLineGetOffsetForStringIndex(line, overlap.location, nil)
             let end = CTLineGetOffsetForStringIndex(line, NSMaxRange(overlap), nil)
             context.fill(CGRect(x: origin.x + min(start, end), y: origin.y - descent, width: abs(end - start), height: ascent + descent))
+        }
+        study?.draw(line: line, origin: origin, descent: descent, learning: learning, known: known, in: context)
+    }
+}
+
+/// A brushstroke under card words met while reading: matcha while the word is being learned,
+/// a faint ink line once it has stuck. Drawn in CoreText's y-up line coordinates.
+struct StudyStroke {
+    let learningColor: UIColor
+    let knownColor: UIColor
+
+    init(traits: UITraitCollection) {
+        learningColor = UIColor(Theme.accent).resolvedColor(with: traits)
+        knownColor = UIColor(Theme.textSecondary).resolvedColor(with: traits).withAlphaComponent(0.55)
+    }
+
+    func draw(line: CTLine, origin: CGPoint, descent: CGFloat, learning: [NSRange], known: [NSRange], in context: CGContext) {
+        let lineRange = CTLineGetStringRange(line)
+        let span = NSRange(location: lineRange.location, length: lineRange.length)
+        for (ranges, color, weight) in [(learning, learningColor, CGFloat(2)), (known, knownColor, CGFloat(1))] {
+            context.setFillColor(color.cgColor)
+            for range in ranges {
+                let overlap = NSIntersectionRange(range, span)
+                guard overlap.length > 0 else { continue }
+                let start = CTLineGetOffsetForStringIndex(line, overlap.location, nil)
+                let end = CTLineGetOffsetForStringIndex(line, NSMaxRange(overlap), nil)
+                // Inset slightly so neighbouring marked words read as separate strokes.
+                context.fill(CGRect(x: origin.x + min(start, end) + 1, y: origin.y - descent * 0.55 - weight,
+                                    width: max(0, abs(end - start) - 2), height: weight))
+            }
         }
     }
 }

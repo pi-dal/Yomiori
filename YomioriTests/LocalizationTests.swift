@@ -23,7 +23,8 @@ struct LocalizationTests {
     @Test func progressAndAccessibilityFormatsKeepArgumentTypes() throws {
         #expect(try text("read.transcribing", language: "en", Int64(42)) == "Generating subtitles… 42%")
         #expect(try text("link.downloading", language: "zh-Hans", Int64(42)) == "正在下载… 42%")
-        #expect(try text("review.a11yPosition", language: "zh-Hans", Int64(1), Int64(3)) == "第 1 张，共 3 张")
+        #expect(try text("review.a11yProgress", language: "zh-Hans", Int64(1), Int64(3)) == "已完成 1 / 3 个词")
+        #expect(try text("review.summaryStats", language: "en", Int64(4), Int64(2), Int64(1)) == "4 recalled · 2 new · 1 to revisit")
         #expect(try text("review.a11yRating", language: "zh-Hans", "良好", "2 天") == "良好，2 天后复习")
     }
 }

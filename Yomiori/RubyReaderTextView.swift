@@ -9,16 +9,18 @@ struct RubyTappableText: UIViewRepresentable {
     var lineSpacing: CGFloat = 4
     var highlighted = false
     var washed: (String) -> Bool = { _ in false }
+    var studyMarks: [String: StudyLexicon.Stage] = [:]
     let onTap: (String) -> Void
     @ScaledMetric(relativeTo: .caption) private var rubySize: CGFloat = 14
     @Environment(\.colorScheme) private var colorScheme
 
     init(text: String, language: String, furigana: Bool, pointSize: CGFloat = 17,
          lineSpacing: CGFloat = 4, highlighted: Bool = false,
-         washed: @escaping (String) -> Bool = { _ in false }, onTap: @escaping (String) -> Void) {
+         washed: @escaping (String) -> Bool = { _ in false }, studyMarks: [String: StudyLexicon.Stage] = [:],
+         onTap: @escaping (String) -> Void) {
         self.text = text; self.language = language; self.furigana = furigana
         self.pointSize = pointSize; self.lineSpacing = lineSpacing; self.highlighted = highlighted
-        self.washed = washed; self.onTap = onTap
+        self.washed = washed; self.studyMarks = studyMarks; self.onTap = onTap
     }
     func makeUIView(context: Context) -> RubyReaderTextView { RubyReaderTextView() }
     func updateUIView(_ view: RubyReaderTextView, context: Context) {
@@ -27,7 +29,7 @@ struct RubyTappableText: UIViewRepresentable {
         let selectedWords = tokens.filter { $0.1 && washed($0.0) }.map(\.0)
         let key = RenderKey(text: text, language: language, furigana: furigana,
                             pointSize: pointSize, rubySize: rubySize, lineSpacing: lineSpacing,
-                            highlighted: highlighted, selectedWords: selectedWords, dark: colorScheme == .dark)
+                            highlighted: highlighted, selectedWords: selectedWords, dark: colorScheme == .dark, studyMarks: studyMarks)
         guard view.renderedKey != key else { return }
         view.renderedKey = key
         let traits = UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
@@ -37,9 +39,10 @@ struct RubyTappableText: UIViewRepresentable {
         view.tintColor = ink
         let content = ReaderTextContent.make(text: text, language: language, furigana: furigana,
             pointSize: pointSize, rubySize: rubySize, lineSpacing: lineSpacing, ink: ink, supporting: supporting,
-            highlighted: highlighted, selectedWords: selectedWords)
+            highlighted: highlighted, selectedWords: selectedWords, studyMarks: studyMarks)
+        view.study = StudyStroke(traits: traits)
         view.configure(content: content.attributedText, words: content.words.map { .init(text: $0.text, range: $0.range) },
-                       highlights: content.highlights, language: language)
+                       highlights: content.highlights, learning: content.learning, known: content.known, language: language)
     }
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: RubyReaderTextView, context: Context) -> CGSize? {
         guard let width = proposal.width, width > 0 else { return nil }
@@ -52,6 +55,7 @@ struct RubyTappableText: UIViewRepresentable {
         let highlighted: Bool
         let selectedWords: [String]
         let dark: Bool
+        var studyMarks: [String: StudyLexicon.Stage] = [:]
     }
 }
 
@@ -68,6 +72,8 @@ final class RubyReaderTextView: UIView, UIEditMenuInteractionDelegate, UIGesture
     private var cachedFrame: TextFrame?
     private var words: [WordRange] = []
     private var highlights: [NSRange] = []
+    private var learning: [NSRange] = [], known: [NSRange] = []
+    var study: StudyStroke?
     private var selectedRange: NSRange? {
         didSet {
             accessibilityValue = selectedExcerpt
@@ -109,9 +115,11 @@ final class RubyReaderTextView: UIView, UIEditMenuInteractionDelegate, UIGesture
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(content: NSAttributedString, words: [WordRange], highlights: [NSRange], language: String) {
+    func configure(content: NSAttributedString, words: [WordRange], highlights: [NSRange],
+                   learning: [NSRange] = [], known: [NSRange] = [], language: String) {
         if self.content.string != content.string { clearSelection() }
         self.content = content; self.words = words; self.highlights = highlights
+        self.learning = learning; self.known = known
         framesetter = CTFramesetterCreateWithAttributedString(content as CFAttributedString)
         cachedFrame = nil
         accessibilityLabel = content.string
@@ -195,6 +203,8 @@ final class RubyReaderTextView: UIView, UIEditMenuInteractionDelegate, UIGesture
                 context.fill(CGRect(x: origin.x + min(start, end), y: origin.y - descent,
                                     width: abs(end - start), height: ascent + descent))
             }
+            study?.draw(line: line, origin: origin, descent: descent, learning: learning, known: known, in: context)
+            context.setFillColor(selectionColor.cgColor)
         }
         for (line, origin) in zip(lines, origins) {
             context.textPosition = origin

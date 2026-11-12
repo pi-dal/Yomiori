@@ -293,6 +293,26 @@ struct PaperActionStyle: ButtonStyle {
     }
 }
 
+/// An answer to read and compare, not a command: body-size ink text, leading-aligned like the rest of the page.
+struct AnswerChoiceStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(Theme.Fonts.body)
+            .foregroundStyle(Theme.ink)
+            .multilineTextAlignment(.leading)
+            .lineSpacing(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
+            .padding(.horizontal, 16).padding(.vertical, 14)
+            .background(configuration.isPressed ? Theme.controlSelected : Theme.controlFill,
+                        in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
 private struct ActionSurface: ViewModifier {
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

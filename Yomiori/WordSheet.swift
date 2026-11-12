@@ -38,6 +38,7 @@ struct WordSheet: View {
                             Button("Try again") { load() }.frame(minHeight: 44)
                         }
                     } else { ProgressView().accessibilityLabel("Translation") }
+                    if let card = studiedCard { studyNote(card) }
                     if canMine {
                         VStack(alignment: .leading, spacing: 8) {
                             observedSentence
@@ -94,6 +95,35 @@ struct WordSheet: View {
                 Button("OK", role: .cancel) {}
             } message: { Text(operationError ?? "") }
         }
+    }
+
+    /// The word already has a card, possibly from another source: meeting it again is part of learning it.
+    private var studiedCard: Card? {
+        guard target.kind == "word" else { return nil }
+        return StudyLexicon(cards: cards, language: target.languageCode).card(for: target.word)
+    }
+
+    private func studyNote(_ card: Card) -> some View {
+        let known = StudyLexicon.stage(card) == .known
+        let elsewhere = card.sentence.trimmingCharacters(in: .whitespacesAndNewlines) != target.sentence.trimmingCharacters(in: .whitespacesAndNewlines)
+        return VStack(alignment: .leading, spacing: 8) {
+            Label(known ? "read.studyKnown" : "read.studyLearning", systemImage: known ? "checkmark.seal" : "leaf")
+                .font(Theme.Fonts.meta.weight(.semibold)).foregroundStyle(Theme.accent)
+            if elsewhere {
+                Text("read.metBefore").font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
+                Text(card.sentence).literary(.body, .original)
+                if !card.sourceName.isEmpty { Text(verbatim: card.sourceName).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
+            }
+            if card.reps > 0 {
+                Text(L10n.format("read.nextReview", card.due.formatted(.dateTime.month().day())))
+                    .font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 12)
+        .overlay(alignment: .leading) { Rectangle().fill(Theme.accent).frame(width: 2) }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("read.studyNote")
     }
 
     private var observedSentence: Text {

@@ -17,6 +17,7 @@ struct DictionaryView: View {
     @AppStorage("reviewLimit") private var limit = 30
     @AppStorage("study.newLimit") private var newLimit = 5
     @State private var reviewing = false
+    @State private var freePracticing = false
     @State private var showAllRecent = false
     private var dueCount: Int { DailyStudy.plan(cards, defaults: defaults).queue.count }
 
@@ -119,6 +120,7 @@ struct DictionaryView: View {
                 }.sharedBackgroundVisibility(.hidden)
             }
             .fullScreenCover(isPresented: $reviewing) { ReviewView() }
+            .fullScreenCover(isPresented: $freePracticing) { ReviewView(session: .free) }
             .sheet(isPresented: $showingLookup) { QuickDictionaryView(initialQuery: search) }
             .sheet(item: $selected) { EntryDetail(entry: $0).presentationDetents([.large]) }
         }
@@ -176,10 +178,17 @@ struct DictionaryView: View {
     }
 
     @ViewBuilder private var reviewButton: some View {
-        if dueCount > 0 {
-            Button { reviewing = true } label: {
-                Label("Start review", systemImage: "play.fill")
-            }.buttonStyle(CompactActionStyle())
+        VStack(alignment: .leading, spacing: 8) {
+            if dueCount > 0 {
+                Button { reviewing = true } label: {
+                    Label("Start review", systemImage: "play.fill")
+                }.buttonStyle(CompactActionStyle())
+            }
+            if !cards.isEmpty {
+                Button { freePracticing = true } label: {
+                    Label("study.freePractice", systemImage: "infinity")
+                }.buttonStyle(TextActionStyle()).accessibilityIdentifier("study.freePractice")
+            }
         }
     }
     private func cardRow(_ c: Card) -> some View {
