@@ -2,7 +2,20 @@
 
 2026-10-29：用户已授权全局改名并发布 TestFlight，发布操作使用 `asc`。
 
-## 最新发布：1.1.2 (10)，词汇难度渐进与回忆答案优化
+## 最新发布：1.1.2 (11)，Ink Moments 学习反馈
+
+2026-11-12：用户授权「commit and push，然后发个版」。先提交并推送 Ink Moments 改动，再使用 `asc-release-flow` 和 `asc-submission-health` 发布本构建。
+
+- 版本 **1.1.2 (11)**：回忆选项保留原位并标记答对／答错；已学词在阅读词条页留下学习笔触；完成一轮学习后显示本轮遇到的词和进度；加载状态改为和纸／墨色等待反馈；统一保存、揭示、纠错和复习完成的触觉反馈。
+- 发布前 **99 项单元／集成测试、7 项 UI 测试全部通过**，包括每日学习、中文大字号、错答／答对反馈、词条笔触和完成页。详见 [Ink Moments 验收](acceptance/ink-moments.md)。
+- Release arm64 归档及 IPA 导出成功；归档与解包 IPA 严格签名、版本身份、发布权限和隐私清单检查通过。临时签名钥匙串已删除并恢复原搜索列表。
+- Build／Upload／Beta Review ID：`76be48bd-0e29-4c69-bb92-a9e0f3aadea7`。Apple 回读：`processingState=VALID`、`betaReviewState=APPROVED`、内部和外部均为 `IN_BETA_TESTING`、`autoNotifyEnabled=true`、`usesNonExemptEncryption=false`。
+- `Internal Testers` 和 `Yomiori Email Testers` 两组访问关系完整回读；中英文 What to Test 已写入并确认；TestFlight 严格校验零错误／零警告。未提交正式 App Store 版本。
+- 产物、测试、签名及 Apple 回执：`/tmp/yomiori-testflight-11/`。IPA SHA-256：`60c4bc4c684f93670adc5a9097d03fa8c9efb77b810a2e8a37ca3b20b752474f`。
+- 代码提交：`87f2a2d`（Ink Moments）和 `a3aac70`（构建 11），均已推送至 `origin/main`。
+- 监控：`asc builds build-beta-detail view --build-id 76be48bd-0e29-4c69-bb92-a9e0f3aadea7 --output table`。
+
+## 历史发布：1.1.2 (10)，词汇难度渐进与回忆答案优化
 
 2026-11-11：用户授权「发个新版吧，我又加了一些，同时 commit and push」。沿用 `asc-release-flow`、`asc-xcode-build` 和 `asc-testflight-orchestration` 的发布流程，使用已验证的临时钥匙串签名方式。
 
