@@ -313,6 +313,35 @@ struct AnswerChoiceStyle: ButtonStyle {
     }
 }
 
+/// How a recall answer reads once it has been checked: the meaning inked in matcha, the learner's miss struck in shu,
+/// like a teacher's red brush. Coach marks corrections the same way.
+enum AnswerMark: Equatable { case open, correct, struck, faded }
+
+struct AnswerChoiceLabel: View {
+    let text: String
+    let mark: AnswerMark
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var drawn: AnyTransition { reduceMotion ? .opacity : AnyTransition(.symbolEffect(.drawOn)) }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(verbatim: text)
+                .fontWeight(mark == .correct ? .semibold : nil)
+                .strikethrough(mark == .struck, color: Theme.vermilion)
+                .foregroundStyle(mark == .correct ? Theme.accent : mark == .struck ? Theme.textSecondary : Theme.ink)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if mark == .correct {
+                Image(systemName: "checkmark").fontWeight(.semibold).foregroundStyle(Theme.accent)
+                    .transition(drawn).accessibilityHidden(true)
+            } else if mark == .struck {
+                Image(systemName: "xmark").fontWeight(.semibold).foregroundStyle(Theme.vermilion)
+                    .transition(drawn).accessibilityHidden(true)
+            }
+        }
+        .opacity(mark == .faded ? 0.4 : 1)
+    }
+}
+
 private struct ActionSurface: ViewModifier {
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -419,6 +448,48 @@ struct PressFeedbackStyle: ButtonStyle {
             .opacity(configuration.isPressed && enabled ? 0.75 : 1)
             .scaleEffect(configuration.isPressed && enabled && !reduceMotion && !isStatic ? 0.985 : 1)
             .animation(reduceMotion ? nil : .timingCurve(0.2, 0, 0, 1, duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+/// One haptic vocabulary, so the same touch always means the same thing.
+/// Step: moving through lines or answering. Reveal: something uncovered or marked.
+/// Kept: only when a word, card or finished session is saved.
+extension SensoryFeedback {
+    static let inkStep = SensoryFeedback.selection
+    static let inkReveal = SensoryFeedback.impact(flexibility: .soft, intensity: 0.6)
+    static let inkKept = SensoryFeedback.success
+}
+
+/// The imperative form of the same vocabulary, for results that arrive after async work.
+@MainActor enum Haptic {
+    static func step() { UISelectionFeedbackGenerator().selectionChanged() }
+    static func reveal() { UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.6) }
+    static func kept() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+}
+
+/// Honest waiting: the work is real, only its arrival time is unknown, so the placeholder breathes slowly.
+private struct Breathing: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func body(content: Content) -> some View {
+        if reduceMotion { content } else {
+            content.phaseAnimator([1.0, 0.45]) { view, opacity in view.opacity(opacity) } animation: { _ in .easeInOut(duration: 0.9) }
+        }
+    }
+}
+
+extension View {
+    func breathing() -> some View { modifier(Breathing()) }
+}
+
+/// The meaning's shape while a lookup runs: two quiet lines where the definition will settle.
+struct MeaningPlaceholder: View {
+    var body: some View {
+        Text(verbatim: "A meaning arrives in a moment,\nset on two short lines.")
+            .font(Theme.Fonts.body)
+            .redacted(reason: .placeholder)
+            .breathing()
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("read.lookingUp"))
     }
 }
 

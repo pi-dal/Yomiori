@@ -347,7 +347,7 @@ struct DocViewer: View {
             ctx.insert(entry)
         }
         if let pdf, !pdf.write(to: Files.url(doc.fileName)) { saveError = L10n.string("Couldn't save") }
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Haptic.reveal()
     }
 
     private func saveNote() {

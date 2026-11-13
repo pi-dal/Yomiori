@@ -54,6 +54,8 @@ struct LibraryDesignPreview: View {
                         let card = Card(sentence: word.0, word: word.1)
                         card.meaning = word.2
                         card.reps = index < 3 ? 1 : 0
+                        // One synthetic word sits ten days out, so recalling it shows the moment a word sticks.
+                        if index == 2 { card.interval = 10 }
                         card.due = Date().addingTimeInterval(-60)
                         card.createdAt = Date().addingTimeInterval(Double(index))
                         context.insert(card)

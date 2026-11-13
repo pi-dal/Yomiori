@@ -5,6 +5,7 @@ struct WordSheet: View {
     let target: ReaderView.WordTarget
     @Environment(\.modelContext) private var ctx
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query private var saved: [DictEntry]
     @Query private var cards: [Card]
     @AppStorage("jaDefs") private var jaDefs = false
@@ -37,7 +38,7 @@ struct WordSheet: View {
                             Label("Translation unavailable", systemImage: "wifi.slash").foregroundStyle(Theme.textSecondary)
                             Button("Try again") { load() }.frame(minHeight: 44)
                         }
-                    } else { ProgressView().accessibilityLabel("Translation") }
+                    } else { MeaningPlaceholder() }
                     if let card = studiedCard { studyNote(card) }
                     if canMine {
                         VStack(alignment: .leading, spacing: 8) {
@@ -126,13 +127,22 @@ struct WordSheet: View {
         .accessibilityIdentifier("read.studyNote")
     }
 
-    private var observedSentence: Text {
-        var sentence = AttributedString(target.sentence)
-        if let range = sentence.range(of: target.word) {
-            sentence[range].backgroundColor = Theme.highlight
-            sentence[range].underlineStyle = .single
-        }
-        return Text(sentence).font(Theme.Fonts.body)
+    /// The sentence the word was met in. Once the word has a card, the reader's study stroke is drawn beneath it;
+    /// saving draws it left to right, so the learner sees the mark they will meet again while reading.
+    private var observedSentence: some View {
+        let stage = studiedCard.map(StudyLexicon.stage)
+        return markedSentence
+            .font(Theme.Fonts.body)
+            .textRenderer(BrushStrokeRenderer(progress: stage == nil ? 0 : 1, known: stage == .known, reduceMotion: reduceMotion))
+            .animation(reduceMotion ? .easeInOut(duration: 0.2) : .timingCurve(0.16, 1, 0.3, 1, duration: 0.6).delay(0.1), value: stage == nil)
+    }
+
+    private var markedSentence: Text {
+        let sentence = target.sentence
+        guard !target.word.isEmpty, let range = sentence.range(of: target.word) else { return Text(verbatim: sentence) }
+        var word = AttributedString(String(sentence[range]))
+        word.backgroundColor = Theme.highlight
+        return Text("\(Text(verbatim: String(sentence[..<range.lowerBound])))\(Text(word).customAttribute(StudyWordAttribute()))\(Text(verbatim: String(sentence[range.upperBound...])))")
     }
     @State private var clipURLPreview: URL?
     private func prepareClip() async {
@@ -158,8 +168,10 @@ struct WordSheet: View {
             do {
                 let hasAudio = try await CardMining.mine(target, entry: entry, japaneseDefinition: jaDefs, context: ctx)
                 try Task.checkCancellation()
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                toast = hasAudio ? L10n.string("read.savedAudio") : L10n.string("read.savedNoAudio")
+                Haptic.kept()
+                let message = hasAudio ? L10n.string("read.savedAudio") : L10n.string("read.savedNoAudio")
+                toast = message
+                AccessibilityNotification.Announcement(message).post()
             } catch {
                 guard !Task.isCancelled, !(error is CancellationError) else { return }
                 operationError = error.localizedDescription
@@ -167,7 +179,11 @@ struct WordSheet: View {
         }
     }
     private func toggle() {
-        do { try CardMining.toggle(target, meaning: entry?.meaning ?? "", context: ctx, autoCard: autoCards) }
+        let saving = !isSaved
+        do {
+            try CardMining.toggle(target, meaning: entry?.meaning ?? "", context: ctx, autoCard: autoCards)
+            if saving { Haptic.kept() }
+        }
         catch { operationError = error.localizedDescription }
     }
 }

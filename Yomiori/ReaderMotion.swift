@@ -41,6 +41,52 @@ enum ReaderMotion {
     }
 }
 
+/// Marks the studied word inside a sentence for `BrushStrokeRenderer`.
+struct StudyWordAttribute: TextAttribute {}
+
+/// The reader's study stroke, drawn under the marked word from left to right as `progress` reaches 1:
+/// matcha while the word is being learned, a faint ink line once it has stuck. Saving a word draws it,
+/// so the mark the reader shows afterwards is visibly the one the learner made.
+struct BrushStrokeRenderer: TextRenderer {
+    var progress: Double
+    var known = false
+    var reduceMotion = false
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func draw(layout: Text.Layout, in context: inout GraphicsContext) {
+        // One word can arrive as several glyph runs (font fallback, kana after kanji); its stroke is one span per line.
+        var spans: [(x: CGFloat, y: CGFloat, width: CGFloat)] = []
+        for line in layout {
+            var minX = CGFloat.infinity, maxX = -CGFloat.infinity, y: CGFloat = 0
+            for run in line {
+                context.draw(run)
+                guard run[StudyWordAttribute.self] != nil else { continue }
+                let bounds = run.typographicBounds
+                minX = min(minX, bounds.rect.minX); maxX = max(maxX, bounds.rect.maxX)
+                y = max(y, bounds.origin.y + bounds.descent * 0.55)
+            }
+            // Inset like the reader's stroke, so the line belongs to the word rather than the gap.
+            if maxX > minX { spans.append((minX + 1, y, max(0, maxX - minX - 2))) }
+        }
+        guard progress > 0, !spans.isEmpty else { return }
+        let weight: CGFloat = known ? 1 : 2
+        let color = known ? Theme.textSecondary.opacity(0.55) : Theme.accent
+        let total = spans.reduce(0) { $0 + $1.width }
+        var remaining = reduceMotion ? total : total * progress
+        if reduceMotion { context.opacity = progress }
+        for span in spans {
+            let width = min(span.width, remaining)
+            guard width > 0 else { break }
+            remaining -= width
+            let rect = CGRect(x: span.x, y: span.y, width: width, height: weight)
+            context.fill(Path(roundedRect: rect, cornerRadius: weight / 2), with: .color(color))
+        }
+    }
+}
+
 private struct InkSettle: ViewModifier {
     let settled: Bool, rise: CGFloat
     func body(content: Content) -> some View {

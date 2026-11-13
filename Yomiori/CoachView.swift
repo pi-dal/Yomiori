@@ -161,7 +161,9 @@ struct CoachView: View {
                     if let s = streaming {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Coach").font(Theme.Fonts.meta.weight(.semibold))
-                            if CoachSession.clean(s).isEmpty { ProgressView("Loading…").font(Theme.Fonts.meta) }
+                            if CoachSession.clean(s).isEmpty {
+                                Text("coach.writing").font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary).breathing()
+                            }
                             else { CoachMessageContent(text: CoachSession.clean(s), isStreaming: true) }
                             Button("Cancel", role: .cancel) { session.cancelReply() }.frame(minHeight: 44)
                         }.id("stream")
@@ -215,7 +217,7 @@ struct CoachView: View {
                         // The corrected form becomes a review card in the learner's own sentence.
                         let added = CorrectionCards.exists(c, message: m, in: correctionCards)
                         Button {
-                            do { try CorrectionCards.add(c, message: m, context: ctx); UINotificationFeedbackGenerator().notificationOccurred(.success) }
+                            do { try CorrectionCards.add(c, message: m, context: ctx); Haptic.kept() }
                             catch { correctionError = error.localizedDescription }
                         } label: {
                             Label(added ? "correction.added" : "correction.addToReview", systemImage: added ? "checkmark" : "plus.rectangle.on.rectangle")

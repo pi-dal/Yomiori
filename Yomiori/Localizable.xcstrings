@@ -15601,6 +15601,48 @@
         "en": { "stringUnit": { "state": "translated", "value": "%lld of 20 messages to Coach" } },
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "已给 Coach 发 %lld / 20 条消息" } }
       }
+    },
+    "%@ has stuck": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%@ has stuck" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "%@ 记牢了" } }
+      }
+    },
+    "review.correctA11y": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Correct answer" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正确答案" } }
+      }
+    },
+    "review.struckA11y": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Your choice, not correct" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "你的选择，不正确" } }
+      }
+    },
+    "review.wordsA11y": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Words in this session: %@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "本轮的词：%@" } }
+      }
+    },
+    "read.lookingUp": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Looking up the meaning…" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在查询词义…" } }
+      }
+    },
+    "coach.writing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Coach is writing…" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "Coach 正在回复…" } }
+      }
     }
   },
   "version": "1.0"

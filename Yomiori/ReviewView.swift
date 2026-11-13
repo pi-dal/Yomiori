@@ -36,6 +36,13 @@ struct ReviewView: View {
     @State private var confirmExit = false
     @State private var clip = ClipPlayer()
     @State private var remoteAudio = AtlasPronunciationPlayer()
+    /// Words whose rating in this session carried them from learning to known, in the order they crossed.
+    @State private var stuck: [UUID] = []
+    /// The word that just stuck, noted briefly beside the progress count.
+    @State private var stuckNote: String?
+    @State private var stuckNoteTask: Task<Void, Never>?
+    @State private var keptFeedback = 0
+    @State private var recapShown = false
 
     init(session: ReviewSession = .daily) {
         self.session = session
@@ -66,8 +73,9 @@ struct ReviewView: View {
             .font(Theme.Fonts.body)
             .foregroundStyle(Theme.ink)
             .background(Theme.background)
-            .sensoryFeedback(.success, trigger: recallFeedback)
-            .sensoryFeedback(.impact(weight: .light), trigger: missFeedback)
+            .sensoryFeedback(.inkReveal, trigger: recallFeedback)
+            .sensoryFeedback(.inkStep, trigger: missFeedback)
+            .sensoryFeedback(.inkKept, trigger: keptFeedback)
             .navigationTitle(session == .daily ? LocalizedStringKey("nav.review") : LocalizedStringKey("review.freePractice")).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -87,7 +95,7 @@ struct ReviewView: View {
             .alert("Couldn't save", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: { Text(saveError ?? "") }
-            .onDisappear { clip.stop(); remoteAudio.stop() }
+            .onDisappear { clip.stop(); remoteAudio.stop(); stuckNoteTask?.cancel() }
             .confirmationDialog("review.stopTitle", isPresented: $confirmExit, titleVisibility: .visible) {
                 Button("review.stop", role: .destructive) { dismiss() }; Button("review.continue", role: .cancel) {}
             } message: { if session == .daily { Text("review.stopBody") } }
@@ -100,6 +108,7 @@ struct ReviewView: View {
         sessionCards = Dictionary(cards.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         order = cards.map(\.id)
         flow = ReviewSessionQueue(cards.map { ($0.id, $0.reps == 0) })
+        recapShown = false
         turn += 1
         begin()
     }
@@ -149,7 +158,8 @@ struct ReviewView: View {
         let isCorrect = option.map { MeaningChoices.normalized($0) == MeaningChoices.normalized(quizMeaning(for: card)) } ?? false
         correct = isCorrect
         if isCorrect { recallFeedback += 1 } else { missFeedback += 1 }
-        withAnimation(.easeOut(duration: 0.2)) { step = .result }
+        // The choices stay where they were; only their marks arrive, so the learner sees what they picked graded.
+        withAnimation(ReaderMotion.veil(reduceMotion: reduceMotion)) { step = .result }
     }
 
     private func reveal() {
@@ -160,20 +170,40 @@ struct ReviewView: View {
     /// Applies the answer to the schedule (daily only) and moves on. Missed words return later in the session.
     private func commit(correct isCorrect: Bool, adjustment: Rating? = nil) {
         guard step == .result, let item = flow.current, let card = sessionCards[item.id] else { return }
+        var crossed = false
         if session == .daily, let rating = ReviewSessionQueue.rating(correct: isCorrect, priorMisses: item.misses, adjustment: adjustment) {
+            let wasLearning = StudyLexicon.stage(card) == .learning
             do { try DailyStudy.rate(card, rating: rating, context: context) }
             catch { saveError = L10n.string("study.saveError"); return }
+            crossed = wasLearning && StudyLexicon.stage(card) == .known
         }
         if correct == nil { if isCorrect { recallFeedback += 1 } else { missFeedback += 1 } }
         clip.stop(); remoteAudio.stop()
         withAnimation(ReaderMotion.advance(reduceMotion: reduceMotion)) {
             flow.record(correct: isCorrect); turn += 1; begin()
         }
+        if crossed { noteStuck(card) }
+        // One kept touch for the rarer moments: a word that stuck, or the session's last card.
+        if crossed || flow.isEmpty { keptFeedback += 1 }
         if session == .daily {
             Task {
                 let plan = DailyStudy.plan(allCards, defaults: defaults)
                 await StudyReminders.shared.refresh(defaults: defaults, completed: plan.remaining == 0 || (plan.completed > 0 && plan.queue.isEmpty && plan.nextLearningDate == nil))
             }
+        }
+    }
+
+    /// Real scheduler data, not a reward: the rating just carried this word to a three-week interval.
+    private func noteStuck(_ card: Card) {
+        stuck.append(card.id)
+        let word = card.word
+        withAnimation(ReaderMotion.veil(reduceMotion: reduceMotion)) { stuckNote = word }
+        AccessibilityNotification.Announcement(L10n.format("%@ has stuck", word)).post()
+        stuckNoteTask?.cancel()
+        stuckNoteTask = Task {
+            try? await Task.sleep(for: .seconds(2.8))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.3)) { stuckNote = nil }
         }
     }
 
@@ -187,10 +217,25 @@ struct ReviewView: View {
                 .tint(Theme.accent)
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.3), value: flow.finished)
                 .accessibilityHidden(true)
-            // Missed words return, so progress counts finished words rather than a card position.
-            Text(L10n.format("review.position", Int64(flow.finished), Int64(flow.total)))
-                .font(Theme.Fonts.meta.monospacedDigit()).foregroundStyle(Theme.textSecondary)
-                .accessibilityLabel(L10n.format("review.a11yProgress", Int64(flow.finished), Int64(flow.total)))
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                // Missed words return, so progress counts finished words rather than a card position.
+                Text(L10n.format("review.position", Int64(flow.finished), Int64(flow.total)))
+                    .font(Theme.Fonts.meta.monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                    .contentTransition(.numericText(value: Double(flow.finished)))
+                    .accessibilityLabel(L10n.format("review.a11yProgress", Int64(flow.finished), Int64(flow.total)))
+                Spacer(minLength: 8)
+                if let stuckNote {
+                    Label {
+                        Text("\(Text(verbatim: stuckNote).font(Font(Theme.Fonts.literary(.subheadline, bold: true)))) has stuck")
+                    } icon: {
+                        Image(systemName: "checkmark.seal.fill")
+                    }
+                    .font(Theme.Fonts.meta.weight(.semibold)).foregroundStyle(Theme.accent)
+                    .lineLimit(2).multilineTextAlignment(.trailing)
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 6)))
+                    .accessibilityHidden(true) // Announced when it appears.
+                }
+            }
         }
         .frame(maxWidth: 640, alignment: .leading)
         .padding(.horizontal, 24).padding(.top, 16)
@@ -280,17 +325,17 @@ struct ReviewView: View {
             .font(Theme.Fonts.meta)
             .accessibilityElement(children: .combine)
             marked(c)
-            switch step {
-            case .intro:
+            if step == .intro {
                 answerDetails(c)
                 Text("review.introPrompt")
                     .font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
-            case .recall:
-                recall(c)
-            case .result:
-                feedback(c)
-                answerDetails(c)
+            }
+            // One block from question to verdict, so the choices keep their place while they are graded.
+            if step == .recall || graded { recall(c) }
+            if step == .result {
+                if !graded { feedback(c) }
+                answerDetails(c, omitting: graded ? quizMeaning(for: c) : nil)
             }
             if !c.sourceID.isEmpty, step != .recall {
                 Button("Go to source") {
@@ -332,50 +377,69 @@ struct ReviewView: View {
         }
     }
 
+    /// A choice was made (or declined) among meanings, so the result is shown on the choices themselves.
+    private var graded: Bool { step == .result && correct != nil && !options.isEmpty }
+
+    private func mark(_ option: String, card: Card) -> AnswerMark {
+        guard step == .result, correct != nil else { return .open }
+        if MeaningChoices.normalized(option) == MeaningChoices.normalized(quizMeaning(for: card)) { return .correct }
+        return option == choice ? .struck : .faded
+    }
+
     private func recall(_ c: Card) -> some View {
         VStack(spacing: 12) {
-            Text(selfGraded ? "review.recallSelfPrompt" : "review.quizPrompt")
-                .font(Theme.Fonts.body.weight(.semibold)).multilineTextAlignment(.center)
+            // The verdict takes the question's place.
+            if let correct, step == .result {
+                verdict(correct)
+            } else {
+                Text(selfGraded ? "review.recallSelfPrompt" : "review.quizPrompt")
+                    .font(Theme.Fonts.body.weight(.semibold)).multilineTextAlignment(.center)
+            }
             VStack(spacing: 10) {
                 ForEach(options, id: \.self) { option in
-                    Button { choose(option) } label: { Text(option) }
+                    let mark = mark(option, card: c)
+                    Button { choose(option) } label: { AnswerChoiceLabel(text: option, mark: mark) }
                         .buttonStyle(AnswerChoiceStyle())
+                        .allowsHitTesting(step == .recall)
+                        .accessibilityValue(mark == .correct ? Text("review.correctA11y") : mark == .struck ? Text("review.struckA11y") : Text(""))
                         .accessibilityIdentifier("review.option")
                 }
             }.padding(.top, 4)
+            if correct == false, step == .result, let item = flow.current {
+                Text(item.misses + 1 < ReviewSessionQueue.maximumMisses ? "review.returnsSoon" : "review.returnsLater")
+                    .font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
+            }
         }.padding(.top, 8)
     }
 
+    private func verdict(_ correct: Bool) -> some View {
+        Label(correct ? "review.recalled" : "review.missed",
+              systemImage: correct ? "checkmark.circle.fill" : "arrow.counterclockwise.circle.fill")
+            .foregroundStyle(correct ? Theme.accent : Theme.errorText)
+            .font(Theme.Fonts.body.weight(.semibold))
+            .multilineTextAlignment(.center)
+    }
+
     @ViewBuilder private func feedback(_ c: Card) -> some View {
-        if let correct, let item = flow.current {
-            VStack(spacing: 6) {
-                Label(correct ? "review.recalled" : "review.missed",
-                      systemImage: correct ? "checkmark.circle.fill" : "arrow.counterclockwise.circle.fill")
-                    .foregroundStyle(correct ? Theme.accent : Theme.errorText)
-                    .font(Theme.Fonts.body.weight(.semibold))
-                if !correct {
-                    if let choice { Text(L10n.format("review.yourChoice", choice)).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
-                    Text(item.misses + 1 < ReviewSessionQueue.maximumMisses ? "review.returnsSoon" : "review.returnsLater")
-                        .font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
-                }
-            }.multilineTextAlignment(.center)
-        } else {
+        if correct == nil {
             Text("review.selfCheck").font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary).multilineTextAlignment(.center)
         }
     }
 
-    private func answerDetails(_ c: Card) -> some View {
+    /// `omitting` skips a meaning the learner can already see, such as the checked answer among the choices.
+    private func answerDetails(_ c: Card, omitting shown: String? = nil) -> some View {
         VStack(spacing: 12) {
             if c.word.trimmingCharacters(in: .whitespacesAndNewlines) != c.sentence.trimmingCharacters(in: .whitespacesAndNewlines) {
                 answerText(c.word).font(Theme.Fonts.body.weight(.semibold))
             }
             if !c.reading.isEmpty { Text(c.reading).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
-            let selectedMeaning = primaryMeaning(for: c)
+            let primary = primaryMeaning(for: c)
+            let selectedMeaning = primary == shown ? "" : primary
             let meaning = c.meaning.trimmingCharacters(in: .whitespacesAndNewlines)
             let translation = c.translation.trimmingCharacters(in: .whitespacesAndNewlines)
             if !selectedMeaning.isEmpty { answerText(selectedMeaning).font(Theme.Fonts.body) }
-            if !meaning.isEmpty && meaning != selectedMeaning { answerText(meaning).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary) }
-            if !translation.isEmpty && translation != selectedMeaning && translation != meaning { answerText(translation).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary) }
+            if !meaning.isEmpty && meaning != primary && meaning != shown { answerText(meaning).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary) }
+            if !translation.isEmpty && translation != primary && translation != meaning && translation != shown { answerText(translation).font(Theme.Fonts.body).foregroundStyle(Theme.textSecondary) }
         }.padding(.top, 8)
     }
 
@@ -449,8 +513,9 @@ struct ReviewView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(session == .free ? "review.roundDone" : "review.done")
                         .literary(.title2, bold: true)
+                    wordsPage(missed: Set(flow.missed)).padding(.vertical, 8)
                     Text(L10n.format("review.summaryStats", Int64(flow.recalled.count), Int64(flow.newWords.count), Int64(missed.count)))
-                        .font(Theme.Fonts.body.monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                        .font(Theme.Fonts.meta.monospacedDigit()).foregroundStyle(Theme.textSecondary)
                     // Free practice saves nothing to the schedule, so it says so instead of claiming saved progress.
                     if session == .free {
                         if freeRemaining == 0 { Text("review.freeFinished").font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
@@ -496,6 +561,33 @@ struct ReviewView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// The session's words set on one page, settling in the order they were met: recalled in ink,
+    /// words to revisit in diluted ink, and a seal beside any word that stuck today. The words are the reward.
+    private func wordsPage(missed: Set<UUID>) -> some View {
+        let words = sessionList
+        return FlowLayout(lineSpacing: 6) {
+            ForEach(Array(words.enumerated()), id: \.element.id) { index, card in
+                let revisit = missed.contains(card.id)
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text(verbatim: card.word).literary(.title3, bold: !revisit, .original)
+                        .foregroundStyle(revisit ? Theme.textSecondary : Theme.ink)
+                    if stuck.contains(card.id) {
+                        Image(systemName: "checkmark.seal.fill").font(.caption).foregroundStyle(Theme.accent)
+                    }
+                }
+                .padding(.trailing, 18)
+                .opacity(recapShown ? 1 : 0)
+                .offset(y: recapShown || reduceMotion ? 0 : 10)
+                .animation(reduceMotion ? .easeInOut(duration: 0.2)
+                           : .timingCurve(0.16, 1, 0.3, 1, duration: 0.5).delay(0.3 + 0.06 * Double(min(index, 15))),
+                           value: recapShown)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.format("review.wordsA11y", words.map(\.word).joined(separator: L10n.string("list.separator"))))
+        .onAppear { recapShown = true }
     }
 
     private func title(of source: ReviewSource) -> String? {

@@ -139,8 +139,8 @@ struct ReaderView: View {
             transaction.disablesAnimations = abs(new - old) != 1
             withTransaction(transaction) { shownIndex = new; revealed = false }
         }
-        .sensoryFeedback(.selection, trigger: manualSteps)
-        .sensoryFeedback(trigger: revealed) { _, isRevealed in isRevealed ? .impact(weight: .light, intensity: 0.6) : nil }
+        .sensoryFeedback(.inkStep, trigger: manualSteps)
+        .sensoryFeedback(trigger: revealed) { _, isRevealed in isRevealed ? .inkReveal : nil }
         .onDisappear {
             if let c = current { material.lastLine = c }
             translation.cancel()
@@ -394,7 +394,7 @@ struct ReaderView: View {
                 e.colorIdx = h.id; e.context = line.text; e.sourceID = mid; e.sourceName = material.title; e.sourcePos = start
                 ctx.insert(e)
             }
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Haptic.reveal()
         } else if let e = existing { ctx.delete(e) }
     }
 

@@ -124,7 +124,7 @@ struct QuickDictionaryView: View {
             Text(verbatim: hit.source).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
             let exists = saved.contains { $0.kind == "word" && $0.languageCode == hit.language && QuickDictionary.normalized($0.term) == QuickDictionary.normalized(hit.term) }
             Button(exists ? "In dictionary" : (autoCards ? "study.saveAndReview" : "Add to dictionary"), systemImage: exists ? "checkmark" : "plus") {
-                do { try QuickDictionary.save(hit, context: context, autoCard: autoCards) } catch { failure = error.localizedDescription }
+                do { try QuickDictionary.save(hit, context: context, autoCard: autoCards); Haptic.kept() } catch { failure = error.localizedDescription }
             }.buttonStyle(PaperActionStyle()).disabled(exists).accessibilityIdentifier("lookup.save.\(hit.term)")
         }.padding(.vertical, 8)
     }
