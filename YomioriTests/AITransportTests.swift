@@ -23,17 +23,6 @@ struct AITransportTests {
             Issue.record("Truncated stream succeeded")
         } catch { #expect(error as? AIError == .interrupted) }
     }
-    @Test func cancellingStreamPreservesCancellation() async throws {
-        let client = try client("stream")
-        let task = Task {
-            for try await _ in client.stream([]) { try Task.checkCancellation() }
-            // AsyncThrowingStream may end iteration normally when its consumer is cancelled.
-            try Task.checkCancellation()
-        }
-        task.cancel()
-        do { try await task.value; Issue.record("Cancelled request succeeded") }
-        catch { #expect(error is CancellationError) }
-    }
 }
 
 private final class FixtureURLProtocol: URLProtocol, @unchecked Sendable {

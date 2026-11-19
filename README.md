@@ -15,8 +15,8 @@ cd Yomiori
 
 - `Yomiori.xcodeproj`: app and test targets, with the shared `Yomiori` scheme.
 - `Yomiori/`: SwiftUI app, bundled resources, and English / Simplified Chinese localization.
-- `YomioriTests/`: word lists, localization, AI protocols, cancellation/recovery, reader rendering, and ZIP export tests.
-- `YomioriUITests/`: standard iOS Simulator acceptance for Markdown/streaming, reader selection/lookup, license navigation, and system sharing to Files.
+- `YomioriTests/`: study scheduling, vocabulary import, data recovery, AI service behavior, and packaged resources.
+- `YomioriUITests/`: simulator acceptance for daily and free practice, reading and source navigation, PDF translation and notes, bundled licenses, and delivery to Files.
 - `docs/ai-service.md`: the API contract for connecting your own AI backend.
 - `docs/architecture-review.md`: architecture findings and suggested follow-up work.
 - `word-list-kit/` and `word-list-kit.zip`: generation instructions, JSON schema, validator, and a small original example for custom word lists.

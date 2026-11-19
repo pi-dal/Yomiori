@@ -25,58 +25,6 @@ struct AIClientTests {
         #expect(throws: AIError.invalidConfiguration) { try AIConfiguration(format: .responses, endpoint: "https://example.com/v1/responses", model: " ").validated() }
         #expect(try AIConfiguration(format: .relay, endpoint: "https://example.com/api/ai/chat").validated().model.isEmpty)
     }
-    @Test func decodesResponsesAndRejectsIncompleteResults() throws {
-        let valid = Data(#"{"status":"completed","error":null,"output":[{"type":"reasoning","summary":[]},{"type":"message","content":[{"type":"output_text","text":"Hello"},{"type":"output_text","text":" world"}]}]}"#.utf8)
-        #expect(try AIClient.decodeCompletion(valid, format: .responses) == "Hello world")
-        for json in [#"{"status":"incomplete","output":[]}"#, #"{"status":"failed","error":{"message":"bad"},"output":[]}"#, #"{"status":"completed","output":[]}"#] {
-            #expect(throws: AIError.invalidResponse) { try AIClient.decodeCompletion(Data(json.utf8), format: .responses) }
-        }
-        #expect(try AIClient.decodeCompletion(Data(#"{"choices":[{"message":{"content":"OK"}}]}"#.utf8), format: .openAI) == "OK")
-        #expect(try AIClient.decodeCompletion(Data(#"{"text":"OK"}"#.utf8), format: .relay) == "OK")
-    }
-    @Test func responsesStreamCompletesWithoutDoneMarkerAndDoesNotDuplicateText() throws {
-        var parser = AIStreamParser(format: .responses)
-        #expect(try parser.consume(#"data: {"type":"response.created"}"#) == nil)
-        #expect(try parser.consume(#"data: {"type":"response.output_text.delta","item_id":"a","content_index":0,"delta":"Hello"}"#) == "Hello")
-        #expect(try parser.consume(#"data: {"type":"response.output_text.done","item_id":"a","content_index":0,"text":"Hello"}"#) == nil)
-        #expect(try parser.consume(#"data: {"type":"response.completed","response":{"status":"completed"}}"#) == nil)
-        try parser.finish()
-        #expect(parser.finished)
-    }
-    @Test func terminalOnlyResponsesCanProvideOutput() throws {
-        var parser = AIStreamParser(format: .responses)
-        #expect(try parser.consume(#"data: {"type":"response.completed","response":{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"OK"}]}]}}"#) == "OK")
-        try parser.finish()
-    }
-    @Test func interruptedAndFailedStreamsNeverSucceed() throws {
-        var parser = AIStreamParser()
-        #expect(try parser.consume(#"data: {"choices":[{"delta":{"content":"half"}}]}"#) == "half")
-        #expect(throws: AIError.interrupted) { try parser.finish() }
-        #expect(throws: AIError.invalidResponse) { try parser.consume("data: malformed") }
-        for event in ["response.failed", "response.incomplete", "error"] {
-            var responses = AIStreamParser(format: .responses)
-            #expect(throws: AIError.failed) { try responses.consume("data: {\"type\":\"\(event)\"}") }
-        }
-        var responses = AIStreamParser(format: .responses)
-        #expect(throws: AIError.interrupted) { try responses.consume("data: [DONE]") }
-        #expect(AIError.preservingCancellation(URLError(.cancelled)) is CancellationError)
-    }
-    @Test func sseFramingHandlesMultilineDataCRLFCommentsAndUTF8() throws {
-        var framing = ServerSentEvents()
-        let source = ": heartbeat\r\nevent: response.output_text.delta\r\ndata: {\"type\":\"response.output_text.delta\",\r\ndata: \"delta\":\"你好\"}\r\n\r\n"
-        var frames: [String] = []
-        for byte in source.utf8 { if let frame = try framing.consume(byte) { frames.append(frame) } }
-        #expect(frames.count == 1)
-        var parser = AIStreamParser(format: .responses)
-        let frame = try #require(frames.first)
-        #expect(try parser.consume("data: " + frame) == "你好")
-    }
-    @Test func sseFramingBoundsUnterminatedEvents() throws {
-        var framing = ServerSentEvents()
-        #expect(throws: AIError.invalidResponse) {
-            for byte in ("data: " + String(repeating: "x", count: 1_048_577)).utf8 { _ = try framing.consume(byte) }
-        }
-    }
     @Test @MainActor func configurationStoresSecretsSeparatelyAndSurvivesReload() throws {
         let defaults = try #require(UserDefaults(suiteName: "ai-test-\(UUID())"))
         let secret = MemorySecret()

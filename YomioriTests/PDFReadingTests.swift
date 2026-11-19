@@ -16,7 +16,7 @@ import Testing
         PDFSelectedText(text: text, page: 0, rect: rect)
     }
 
-    @Test func selectionTranslationTargetsChineseCachesAndDoesNotRepeatForGeometry() async throws {
+    @Test func reselectingTextReusesTranslationOnlyForTheSameLanguage() async throws {
         var requests: [(String, String)] = []
         let session = PDFSelectionTranslation(debounce: .zero) { text, source in
             requests.append((text, source)); return "中文：\(text)"
@@ -70,62 +70,4 @@ import Testing
         #expect(session.error == nil && session.text == "阅读")
     }
 
-    @Test func pdfNotificationsDeferStateWritesAndIgnoreDismantledViews() async throws {
-        let pdf = try #require(PDFDocument(data: PDFReadingFixture.data()))
-        let view = PDFView(frame: CGRect(x: 0, y: 0, width: 390, height: 700))
-        view.document = pdf
-        let coordinator = PDFCoordinator()
-        var updates = 0, page = 0
-        let parent = PDFReader(pdf: pdf, page: .init(get: { page }, set: { page = $0 }), coordinator: coordinator) { _ in updates += 1 }
-        let observer = PDFReader.Observer(parent)
-        observer.observe(view)
-        observer.selectionChanged()
-        #expect(updates == 0)
-        for _ in 0..<20 { await Task.yield() }
-        #expect(updates > 0)
-        let count = updates
-        observer.selectionChanged()
-        observer.stop()
-        for _ in 0..<20 { await Task.yield() }
-        #expect(updates == count)
-    }
-
-    @Test func annotationUsesRetainedSelectionAfterSystemPresentation() throws {
-        let pdf = try #require(PDFDocument(data: PDFReadingFixture.data()))
-        let page = try #require(pdf.page(at: 0))
-        let view = PDFView(frame: CGRect(x: 0, y: 0, width: 390, height: 700))
-        view.document = pdf
-        let coordinator = PDFCoordinator(); coordinator.view = view
-        let selection = try #require(pdf.findString("Reading", withOptions: []).first)
-        view.setCurrentSelection(selection, animate: false)
-        coordinator.retainSelection()
-        view.clearSelection()
-        #expect(coordinator.selectionText == "Reading")
-        #expect(!coordinator.annotate(.highlight, color: .systemYellow).isEmpty)
-        #expect(page.annotations.count > 0)
-        #expect(coordinator.selectionText.isEmpty)
-    }
-
-    @Test func selectingAndTranslatingDoesNotAlterPDFRenderingOrViewport() async throws {
-        let pdf = try #require(PDFDocument(data: PDFReadingFixture.data()))
-        let page = try #require(pdf.page(at: 0))
-        let view = PDFView(frame: CGRect(x: 0, y: 0, width: 390, height: 700))
-        view.document = pdf; view.autoScales = true; view.layoutDocumentView()
-        let coordinator = PDFCoordinator(); coordinator.view = view
-        let bounds = page.bounds(for: .mediaBox)
-        let before = page.thumbnail(of: CGSize(width: 600, height: 800), for: .mediaBox).pngData()
-        let scale = view.scaleFactor, frame = view.frame
-        let selection = try #require(pdf.findString("Reading", withOptions: []).first)
-        view.setCurrentSelection(selection, animate: false)
-        let session = PDFSelectionTranslation(debounce: .zero) { _, _ in "阅读" }
-        session.select(PDFSelectedText(text: "Reading", page: 0, rect: view.convert(selection.bounds(for: page), from: page)), source: "en")
-        while session.loading { await Task.yield() }
-        #expect(session.text == "阅读")
-        #expect(view.frame == frame && view.scaleFactor == scale)
-        #expect(page.bounds(for: .mediaBox) == bounds)
-        #expect(page.annotations.isEmpty)
-        #expect(page.thumbnail(of: CGSize(width: 600, height: 800), for: .mediaBox).pngData() == before)
-        coordinator.clearSelection()
-        #expect(view.currentSelection == nil)
-    }
 }

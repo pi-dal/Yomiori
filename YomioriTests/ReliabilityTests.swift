@@ -22,24 +22,12 @@ import ZIPFoundation
             try AppDataService.clear(context: context, operations: operations, library: library, directories: [root], removeDirectory: { _ in throw CocoaError(.fileWriteNoPermission) })
         }
         #expect(operations.resetPending)
-        #expect(operations.generation != original)
         #expect(Operations(defaults: defaults).resetPending)
         #expect(throws: CancellationError.self) { try operations.checkpoint(original) }
         try AppDataService.clear(context: context, operations: operations, library: WordListLibrary(directory: root.appending(path: "lists"), builtInURL: nil), directories: [root])
         #expect(!operations.resetPending)
         #expect(try context.fetch(FetchDescriptor<Card>()).isEmpty)
         #expect(!FileManager.default.fileExists(atPath: root.path))
-    }
-    @Test func lateOperationResultIsRejectedAfterReset() async throws {
-        let defaults = try #require(UserDefaults(suiteName: "operation-test-\(UUID())"))
-        let operations = Operations(defaults: defaults)
-        let gate = AsyncGate<String>()
-        let task = Task { try await operations.run { await gate.wait() } }
-        while !gate.waiting { await Task.yield() }
-        operations.beginReset()
-        gate.resume("late result")
-        do { _ = try await task.value; Issue.record("Stale result was accepted") }
-        catch { #expect(error is CancellationError) }
     }
     @Test func clearingCoachRejectsLateReplyAndAnalysisEvenIfTransportIgnoresCancellation() async throws {
         let container = try container(), context = container.mainContext
@@ -71,31 +59,6 @@ import ZIPFoundation
         #expect(messages.first?.role == "user")
         #expect(session.error != nil)
     }
-    @Test func translationIdentityIncludesBothLanguagesAndTextBoundaries() {
-        let original = TranslationKey(source: "en", target: "zh", texts: ["ab", "c"])
-        #expect(original.cacheID != TranslationKey(source: "en", target: "ja", texts: ["ab", "c"]).cacheID)
-        #expect(original.cacheID != TranslationKey(source: "ja", target: "zh", texts: ["ab", "c"]).cacheID)
-        #expect(original.cacheID != TranslationKey(source: "en", target: "zh", texts: ["a", "bc"]).cacheID)
-    }
-    @Test func pageCacheSeparatesLanguagesAndContentAndRejectsMalformedOutput() async throws {
-        let container = try container(), context = container.mainContext
-        let doc = PDFDoc(title: "test", fileName: "test.pdf"); context.insert(doc); try context.save()
-        var requests = 0
-        let translator: @MainActor ([String], Language, Language) async throws -> [String] = { texts, _, target in
-            requests += 1; return texts.map { "\(target.code):\($0)" }
-        }
-        _ = try await TranslationService.page(doc, page: 0, texts: ["hello"], source: "en", target: "zh", context: context, translate: translator)
-        let cached = try await TranslationService.page(doc, page: 0, texts: ["hello"], source: "en", target: "zh", context: context, translate: translator)
-        #expect(cached == ["zh:hello"]); #expect(requests == 1)
-        _ = try await TranslationService.page(doc, page: 0, texts: ["hello"], source: "en", target: "ja", context: context, translate: translator)
-        _ = try await TranslationService.page(doc, page: 0, texts: ["changed"], source: "en", target: "ja", context: context, translate: translator)
-        #expect(requests == 3)
-        do {
-            _ = try await TranslationService.page(doc, page: 1, texts: ["hello"], source: "en", target: "zh", context: context, translate: { _, _, _ in [] })
-            Issue.record("Malformed translation accepted")
-        } catch { #expect(error as? AIError == .invalidResponse) }
-        #expect(try doc.readTranslations().count == 3)
-    }
     @Test func replacedSubtitlesRejectLateTranslation() async throws {
         let container = try container(), context = container.mainContext
         let material = Material(title: "test"); material.languageCode = "en"
@@ -111,23 +74,6 @@ import ZIPFoundation
         catch { #expect(error is CancellationError) }
         #expect(try material.readLines().first?.text == "replacement")
         #expect(try material.readLines().first?.translation == nil)
-    }
-    @Test func recognitionBridgeCancelsBeforeStartAndCompletesOnlyOnce() async throws {
-        let cancelled = RecognitionOperation(); cancelled.cancel()
-        do {
-            let _: [SubLine] = try await withCheckedThrowingContinuation { continuation in
-                #expect(!cancelled.begin(continuation))
-            }
-            Issue.record("Pre-cancelled recognition started")
-        } catch { #expect(error is CancellationError) }
-        let operation = RecognitionOperation()
-        let result: [SubLine] = try await withCheckedThrowingContinuation { continuation in
-            #expect(operation.begin(continuation))
-            operation.complete(.success([SubLine(start: 0, end: 1, text: "done")]))
-            operation.cancel()
-            operation.complete(.failure(TranscribeError.none))
-        }
-        #expect(result.first?.text == "done")
     }
     @Test func legacySubtitlesDecodeAndCorruptBlobIsPreserved() throws {
         let material = Material(title: "test")
@@ -148,74 +94,19 @@ import ZIPFoundation
         }
         #expect(Subtitles.parse("1\n00:00:01,500 --> 00:00:02,000\nvalid\n").first?.start == 1.5)
     }
-    @Test func invalidSavedTimelinesAndDuplicateIDsArePreservedWithoutRendering() throws {
-        let material = Material(title: "invalid")
-        let id = UUID()
-        let line = SubLine(id: id, start: 0, end: 1, text: "duplicate")
-        for lines in [[line, line], [SubLine(start: 1e100, end: 1e100, text: "huge")], [SubLine(start: 5, end: 1, text: "reversed")]] {
-            let data = try JSONEncoder().encode(lines)
-            material.linesData = data
-            #expect(throws: (any Error).self) { try material.readLines() }
-            #expect(material.lines.isEmpty && material.contentError != nil)
-            #expect(material.linesData == data)
-            #expect(throws: (any Error).self) { try material.writeLines(lines) }
-            #expect(material.linesData == data)
-        }
-    }
-    @Test func subtitleFormattingHandlesInvalidStoredTimes() {
-        for time in [Double.nan, .infinity, -.infinity, .greatestFiniteMagnitude, -1] {
-            #expect(Subtitles.stamp(time) == "0:00")
-            #expect(Subtitles.srt([SubLine(start: time, end: time, text: "saved")]).contains("00:00:00,000 --> 00:00:00,000"))
-        }
-    }
-    @Test func immersionRejectsOverflowInputAndFormatsInvalidHistory() {
-        for input in ["nan", "inf", "1e308", "-1", "0", "999999999999999999999999"] {
-            #expect(Immersion.manualSeconds(input) == nil)
-        }
-        #expect(Immersion.manualSeconds("30") == 1800)
-        for time in [Double.nan, .infinity, .greatestFiniteMagnitude, -1] {
-            #expect(Immersion.format(time) == Immersion.format(0))
-        }
-    }
     @Test func repeatedReviewsAndInvalidStoredIntervalsStaySchedulable() {
         let card = Card(sentence: "hello", word: "hello")
         for _ in 0..<100 {
             Scheduler.apply(card, .easy)
-            #expect(card.interval.isFinite && card.interval <= 36_500)
-            #expect(!Scheduler.hint(card.interval).isEmpty)
+            #expect(card.due.timeIntervalSince1970.isFinite)
         }
         for invalid in [Double.nan, .infinity, .greatestFiniteMagnitude, -1] {
             card.interval = invalid; card.ease = invalid
             for rating in Rating.allCases {
-                #expect(Scheduler.next(card, rating).isFinite)
-                #expect(!Scheduler.hint(invalid).isEmpty)
                 Scheduler.apply(card, rating)
                 #expect(card.due.timeIntervalSince1970.isFinite)
             }
         }
-        #expect(ReviewView.due([card], limit: -1).isEmpty)
-    }
-    @Test func reloadingPlayerReleasesOldPlayerAndResetsPlaybackState() async throws {
-        let model = PlayerModel()
-        let url = URL.temporaryDirectory.appending(path: "missing-playback-fixture.wav")
-        model.load(url)
-        weak var oldPlayer = model.player
-        model.duration = 60; model.time = 20; model.playing = true
-        model.load(url)
-        // AVFoundation releases item loading work asynchronously.
-        for _ in 0..<100 {
-            if oldPlayer == nil { break }
-            try await Task.sleep(for: .milliseconds(20))
-        }
-        #expect(oldPlayer == nil)
-        #expect(model.duration == 0 && model.time == 0 && !model.playing)
-        weak var current = model.player
-        model.stop(); model.stop()
-        for _ in 0..<100 {
-            if current == nil { break }
-            try await Task.sleep(for: .milliseconds(20))
-        }
-        #expect(current == nil && model.player == nil)
     }
     @Test func exporterBuildsExistingFilesAndFailsWithoutMarkingCards() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)

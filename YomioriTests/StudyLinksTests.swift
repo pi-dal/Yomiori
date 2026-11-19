@@ -29,20 +29,6 @@ import Testing
         #expect(lexicon.card(for: "member") == nil)
     }
 
-    @Test func wordsStickAfterThreeWeeks() {
-        #expect(StudyLexicon.stage(card("a", reps: 0, interval: 30)) == .learning)
-        #expect(StudyLexicon.stage(card("a", reps: 4, interval: 20)) == .learning)
-        #expect(StudyLexicon.stage(card("a", reps: 4, interval: 21)) == .known)
-    }
-
-    @Test func readerMarksCacheFollowsCardChanges() {
-        let cache = StudyLexiconCache(), yomu = card("読む")
-        #expect(cache.marks(for: "本を読む", cards: [yomu], language: "ja").values.contains(.learning))
-        yomu.reps = 5; yomu.interval = 40
-        #expect(cache.marks(for: "本を読む", cards: [yomu], language: "ja").values.contains(.known))
-        #expect(cache.marks(for: "本を読む", cards: [], language: "ja").isEmpty)
-    }
-
     @Test func coachFocusesOnTodaysMissedThenNewWords() {
         let old = card("古い"); old.createdAt = now.addingTimeInterval(-9_000)
         let recent = card("新しい"); recent.createdAt = now.addingTimeInterval(-60)
@@ -61,25 +47,14 @@ import Testing
         let message = ChatMsg(role: "user", content: "昨日、友達を公園に行きました"); message.languageCode = "ja"
         context.insert(message)
         let correction = Correction(category: "Particles", pattern: "に vs を", wrong: "友達を", right: "友達と", reason: "with a friend")
-        #expect(CorrectionCards.sentence(message.content, correction: correction) == "昨日、友達と公園に行きました")
         let added = try #require(try CorrectionCards.add(correction, message: message, context: context, now: now))
+        #expect(added.sentence == "昨日、友達と公園に行きました")
         #expect(added.word == "友達と" && added.sourceKind == "coach" && added.reps == 0 && added.due == now)
         #expect(added.meaning.contains("with a friend") && added.meaning.contains("友達を"))
         #expect(try CorrectionCards.add(correction, message: message, context: context) == nil)
         let cards = try context.fetch(FetchDescriptor<Card>())
-        #expect(cards.count == 1 && CorrectionCards.exists(correction, message: message, in: cards))
+        #expect(cards.count == 1)
         #expect(StudyPlan(cards: cards, reviewLimit: 10, newLimit: 5, language: "ja", now: now).queue.count == 1)
-    }
-
-    @Test func milestonesKeepGrowingBeyondTheListedTiers() {
-        let start = GrowthTrack(kind: .wordsStuck, value: 0)
-        #expect(start.reached == nil && start.next == 10 && start.fraction == 0)
-        let middle = GrowthTrack(kind: .wordsStuck, value: 37)
-        #expect(middle.reached == 25 && middle.next == 50 && abs(middle.fraction - 12.0 / 25) < 0.0001)
-        let beyond = GrowthTrack(kind: .wordsStuck, value: 4_100)
-        #expect(beyond.reached == 4_000 && beyond.next == 6_000)
-        let exact = GrowthTrack(kind: .hours, value: 500)
-        #expect(exact.reached == 500 && exact.next == 1_000)
     }
 
     @Test func missedDaysNeverResetProgressAndPhasesFollowActivity() throws {

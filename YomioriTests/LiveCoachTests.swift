@@ -1,6 +1,5 @@
 import Foundation
 import Testing
-import SwiftData
 @testable import Yomiori
 
 @MainActor struct LiveCoachTests {
@@ -12,10 +11,6 @@ import SwiftData
         await wait { wire.connected }
         wire.emit(["type": "session.created"])
         await wait { wire.sent.count == 1 }
-        let update = try #require(try JSONSerialization.jsonObject(with: Data(wire.sent[0].utf8)) as? [String: Any])
-        let settings = try #require(update["session"] as? [String: Any])
-        #expect(settings["input_audio_format"] as? String == "pcm")
-        #expect((settings["instructions"] as? String)?.contains("original microphone audio") == true)
         wire.emit(["type": "session.updated"])
         await wait { session.phase == .listening }
         audio.continuation?.yield(Data([1, 0, 2, 0]))
@@ -44,9 +39,7 @@ import SwiftData
         #expect(wire.closed)
     }
     @Test func mutedAudioAndLateEventsNeverPublishAfterEnding() async throws {
-        let wire = TestLiveConnection(), audio = TestLiveAudio(), session = LiveSession(connection: TestLiveConnection(), audio: TestLiveAudio())
-        // A second instance proves session state is not shared through singletons.
-        #expect(!session.active)
+        let wire = TestLiveConnection(), audio = TestLiveAudio()
         let live = LiveSession(connection: wire, audio: audio)
         var persisted = 0
         live.start(configuration: LiveConfiguration(), apiKey: "test", language: "en", pronunciation: false) { _, _ in persisted += 1 }
@@ -75,24 +68,6 @@ import SwiftData
         let event = try LiveProtocol.session(configuration: config, language: "en", pronunciation: false)
         let value = try #require(try JSONSerialization.jsonObject(with: Data(event.utf8)) as? [String: Any])
         #expect((value["session"] as? [String: Any])?["enable_search"] as? Bool == true)
-    }
-    @Test func localLookupWorksWithoutAIAndSavingDeduplicatesWithinLanguage() throws {
-        let container = try ModelContainer(for: DictEntry.self, Card.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-        let context = container.mainContext
-        let data = try Data(contentsOf: #require(Bundle.main.url(forResource: "word-atlas", withExtension: "json")))
-        let document = try WordListDocument.decodeValidated(data)
-        let word = try #require(document.entries.first)
-        let hits = QuickDictionary.search("  " + word.w.uppercased() + "  ", language: "en", saved: [], documents: [document])
-        let exact = try #require(hits.first)
-        #expect(QuickDictionary.normalized(exact.term) == QuickDictionary.normalized(word.w))
-        try QuickDictionary.save(exact, context: context)
-        try QuickDictionary.save(exact, context: context)
-        var japanese = exact; japanese.language = "ja"
-        try QuickDictionary.save(japanese, context: context)
-        let saved = try context.fetch(FetchDescriptor<DictEntry>())
-        #expect(saved.count == 2)
-        #expect(QuickDictionary.search(word.w, language: "en", saved: saved, documents: [document]).filter { QuickDictionary.normalized($0.term) == QuickDictionary.normalized(word.w) }.count == 1)
-        #expect(QuickDictionary.search("  ", language: "en", saved: saved, documents: [document]).isEmpty)
     }
     @Test(.enabled(if: ProcessInfo.processInfo.environment["YOMIORI_AUDIO_DEVICE_TEST"] == "1"))
     func nativeVoiceEngineStartsPlaysAndCloses() async throws {

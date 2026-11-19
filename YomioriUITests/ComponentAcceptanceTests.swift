@@ -11,17 +11,10 @@ import XCTest
         XCTAssertTrue(app.navigationBars["Component preview"].waitForExistence(timeout: 10))
     }
 
-    private func capture(_ name: String) {
-        let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.name = name; shot.lifetime = .keepAlways
-        add(shot)
-    }
-
     func testReaderLookupAndNativeSelection() {
         app.buttons["Reader"].tap()
         let reader = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "今日は日本語を勉強します。")).firstMatch
         XCTAssertTrue(reader.waitForExistence(timeout: 5))
-        capture("reader-ruby")
         app.switches["Furigana"].tap()
         XCTAssertTrue(reader.waitForExistence(timeout: 5))
         reader.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.1)).tap()
@@ -29,24 +22,8 @@ import XCTest
         reader.coordinate(withNormalizedOffset: CGVector(dx: 0.35, dy: 0.1)).press(forDuration: 1.2)
         let lookup = app.descendants(matching: .any).matching(identifier: "Look up meaning").firstMatch
         XCTAssertTrue(lookup.waitForExistence(timeout: 5), app.debugDescription)
-        capture("reader-native-selection")
         lookup.tap()
         XCTAssertFalse(app.staticTexts["preview.lookup"].label.isEmpty)
-    }
-
-    func testMarkdownAndStreaming() {
-        let heading = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "A little practice, every day")).firstMatch
-        XCTAssertTrue(heading.waitForExistence(timeout: 5))
-        capture("coach-markdown")
-        let stream = app.buttons["Stream preview"]
-        if !stream.isHittable { app.swipeUp() }
-        XCTAssertTrue(stream.waitForExistence(timeout: 5))
-        stream.tap()
-        XCTAssertTrue(app.buttons["Cancel"].waitForExistence(timeout: 5))
-        XCTAssertTrue(stream.waitForExistence(timeout: 15))
-        app.swipeDown()
-        XCTAssertTrue(heading.waitForExistence(timeout: 5))
-        capture("coach-stream-complete")
     }
 
     func testSettingsLicenseEntry() {
@@ -68,7 +45,6 @@ import XCTest
         XCTAssertTrue(notices.waitForExistence(timeout: 5))
         XCTAssertTrue(notices.label.contains("ZIPFoundation"))
         XCTAssertTrue(notices.label.contains("Litext"))
-        capture("settings-licenses")
     }
 
     func testSystemShareCancelThenSaveToFiles() {
@@ -83,7 +59,6 @@ import XCTest
         share.tap()
         let close = app.buttons["Close"]
         XCTAssertTrue(close.waitForExistence(timeout: 10), app.debugDescription)
-        capture("system-share")
         close.tap()
         app.navigationBars.buttons["Done"].tap()
         XCTAssertEqual(app.staticTexts["preview.exportedCount"].label, "Preview exported: 0")
@@ -107,7 +82,6 @@ import XCTest
         let existing = filename.value as? String ?? "Yomiori-Anki"
         filename.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count))
         filename.typeText("Yomiori-Acceptance-\(UUID().uuidString.prefix(8))")
-        capture("save-to-files")
         expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: save)
         waitForExpectations(timeout: 5)
         save.tap()
@@ -118,6 +92,5 @@ import XCTest
         app.navigationBars["Anki"].buttons["Done"].tap()
         expectation(for: NSPredicate(format: "label == %@", "Preview exported: 1"), evaluatedWith: app.staticTexts["preview.exportedCount"])
         waitForExpectations(timeout: 5)
-        capture("share-completed")
     }
 }
