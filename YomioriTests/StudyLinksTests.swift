@@ -57,19 +57,30 @@ import Testing
         #expect(StudyPlan(cards: cards, reviewLimit: 10, newLimit: 5, language: "ja", now: now).queue.count == 1)
     }
 
-    @Test func missedDaysNeverResetProgressAndPhasesFollowActivity() throws {
+    @Test func identicalSentencesInDifferentSourcesCanBothBeMined() async throws {
+        let container = try ModelContainer(for: Card.self, DictEntry.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        for id in ["first", "second", "second"] {
+            let target = ReaderView.WordTarget(word: "meeting", sentence: "A meeting.", materialID: id)
+            _ = try await CardMining.mine(target, entry: .init(meaning: "a gathering", pos: "noun"), japaneseDefinition: false, context: context)
+        }
+        let cards = try context.fetch(FetchDescriptor<Card>())
+        #expect(cards.count == 2)
+        #expect(Set(cards.map(\.sourceID)) == ["first", "second"])
+    }
+
+    @Test func progressCountsImmersionDaysWithGapsAndOnlyEstablishedWords() {
         let d = UserDefaults(suiteName: "StudyLinksTests.\(UUID())")!
         let calendar = Calendar.current
         func day(_ offset: Int) -> Date { calendar.date(byAdding: .day, value: -offset, to: now)! }
-        // Activity on five separate days in the last week, with gaps, plus one old day.
+        // Immersion on six separate days in the last week, with gaps, plus one old day.
         var logs: [ImmersionLog] = []
-        for offset in [0, 2, 3, 5, 6, 20] { logs.append(ImmersionLog(day: calendar.startOfDay(for: day(offset)), seconds: 600, kind: "reading")) }
-        let stuck = (0..<3).map { index -> Card in let c = card("語\(index)", reps: 6, interval: 30); c.lastCompletedAt = day(1); return c }
-        let snapshot = LearningJourneySnapshot.make(cards: stuck, logs: logs, entries: [], messages: [], defaults: d, now: now)
+        for offset in [0, 1, 2, 3, 5, 6, 20] { logs.append(ImmersionLog(day: calendar.startOfDay(for: day(offset)), seconds: 600, kind: "reading")) }
+        let known = card("読む", reps: 4, interval: 21)
+        known.lastCompletedAt = day(4) // Reviewed on a day with no immersion.
+        let cards = [known, card("聞く", reps: 4, interval: 20), card("見る", reps: 0, interval: 30)]
+        let snapshot = LearningJourneySnapshot.make(cards: cards, logs: logs, entries: [], messages: [], defaults: d, now: now)
         #expect(snapshot.activeDays == 7 && snapshot.activeDaysThisWeek == 6)
-        #expect(snapshot.wordsStuck == 3 && snapshot.phase == .understanding)
-        #expect(snapshot.tracks.first { $0.kind == .activeDays }?.reached == 7)
-        let early = LearningJourneySnapshot.make(cards: [], logs: Array(logs.prefix(2)), entries: [], messages: [], defaults: d, now: now)
-        #expect(early.activeDays == 2 && early.phase == .foundation)
+        #expect(snapshot.wordsStuck == 1)
     }
 }

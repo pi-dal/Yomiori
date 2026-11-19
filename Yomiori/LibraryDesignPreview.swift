@@ -39,6 +39,8 @@ struct LibraryDesignPreview: View {
                 guard !seeded else { return }
                 seeded = true
                 let arguments = ProcessInfo.processInfo.arguments
+                // A brand-new install: no cards, materials or documents.
+                if arguments.contains("--empty-library-preview") { return }
                 if arguments.contains("--daily-study-preview") {
                     preferences.set(5, forKey: "reviewLimit")
                     preferences.set(2, forKey: "study.newLimit")
@@ -112,6 +114,7 @@ struct LibraryDesignPreview: View {
                     if arguments[flag + 1] == "reader" { app.jumpMaterial = (reading.id.uuidString, 5) }
                     if arguments[flag + 1] == "document" { app.jumpDoc = (document.id.uuidString, 0); app.tab = .documents }
                     if arguments[flag + 1] == "settings" { showSettings = true }
+                    if arguments[flag + 1] == "today" { app.studyDestination = .today }
                 }
                 if ProcessInfo.processInfo.arguments.contains("--library-scale-preview") {
                     for index in 1...240 {

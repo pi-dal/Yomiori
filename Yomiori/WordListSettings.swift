@@ -23,6 +23,8 @@ struct WordListCreditsView: View {
 struct LanguagesSettingsView: View {
     @AppStorage("targetLang") private var learning = "ja"
     @AppStorage("nativeLang") private var native = Language.deviceDefault
+    @AppStorage("jaDefs") private var jaDefs = false
+    @AppStorage("enDefs") private var enDefs = true
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -39,6 +41,10 @@ struct LanguagesSettingsView: View {
                         ForEach(Language.all) { Text($0.displayName).tag($0.code) }
                     }.labelsHidden().frame(minHeight: 44)
                 }.frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Japanese definitions", isOn: $jaDefs).frame(minHeight: 44)
+                    Toggle("English definitions", isOn: $enDefs).frame(minHeight: 44)
+                }
             }.pickerStyle(.menu).frame(maxWidth: 720, alignment: .leading).padding(.horizontal, 24).padding(.vertical, 16).frame(maxWidth: .infinity)
         }
         .listStyle(.plain).listSectionSpacing(24)

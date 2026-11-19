@@ -156,13 +156,22 @@ struct ReadView: View {
     private var empty: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                DailyStudySection().padding(.bottom, 24)
+                DailyStudySection()
                 Text("Your next read starts here.")
                     .literary(.title1)
                     .padding(.top, 20).padding(.bottom, 12)
                 Text("Bring something you want to understand.")
                     .font(.body).foregroundStyle(Theme.textSecondary)
-                    .padding(.bottom, 32)
+                    .padding(.bottom, 16)
+                // The one first-run decision. English starts today's study at once from the bundled word book.
+                LabeledContent("Learning language") {
+                    Picker("Learning language", selection: $importLanguage) {
+                        Text("Japanese").tag("ja"); Text("English").tag("en")
+                    }.labelsHidden().pickerStyle(.menu).accessibilityIdentifier("read.learningLanguage")
+                }
+                .frame(minHeight: 44)
+                .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 0.5) }
+                .padding(.bottom, 16)
                 SourceAction(symbol: "play.rectangle", title: "Video or audio", detail: "Read along with what you hear.") { importer = .media }
                 SourceAction(symbol: "text.alignleft", title: "Subtitle file", detail: "Open a transcript, line by line.") { importer = .subtitle }
                 SourceAction(symbol: "link", title: "Media link", detail: "Open a video or audio link.") { linkMode = .link }
@@ -275,9 +284,13 @@ struct ReadView: View {
     }
 
     private func delete(_ m: Material) {
-        if let f = m.mediaFile { try? FileManager.default.removeItem(at: Files.url(f)) }
-        if lastOpenedID == m.id.uuidString { lastOpenedID = "" }
-        ctx.delete(m)
+        let id = m.id.uuidString
+        do {
+            try Files.removeImport(m.mediaFile) {
+                try ctx.transaction { ctx.delete(m) }
+            }
+            if lastOpenedID == id { lastOpenedID = "" }
+        } catch { self.error = error.localizedDescription }
     }
 
     private func importSubtitle(_ url: URL) {

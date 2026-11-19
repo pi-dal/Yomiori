@@ -22,10 +22,10 @@ struct ReviewView: View {
     @State private var flow = ReviewSessionQueue([])
     @State private var sessionCards: [UUID: Card] = [:]
     @State private var order: [UUID] = []
-    @State private var step: ReviewStep = .intro
+    private var step: ReviewStep { flow.step }
     @State private var options: [String] = []
-    @State private var choice: String?
-    @State private var correct: Bool?
+    private var choice: String? { flow.answer?.choice }
+    private var correct: Bool? { flow.answer?.correct }
     @State private var turn = 0
     @State private var recallFeedback = 0
     @State private var missFeedback = 0
@@ -46,10 +46,6 @@ struct ReviewView: View {
 
     init(session: ReviewSession = .daily) {
         self.session = session
-    }
-
-    static func due(_ cards: [Card], limit: Int, newLimit: Int = 5) -> [Card] {
-        StudyPlan(cards: cards, reviewLimit: limit, newLimit: newLimit).queue
     }
 
     private var currentCard: Card? { flow.current.flatMap { sessionCards[$0.id] } }
@@ -116,13 +112,15 @@ struct ReviewView: View {
     /// Review can open straight from Read or a reminder, so it tops up today's new words itself.
     /// Preparation is local only; a failure still leaves the due reviews available.
     private func prepareDaily() async {
-        let generation = Operations.shared.generation
-        await library.load()
-        if (try? Operations.shared.checkpoint(generation)) != nil {
-            try? DailyStudy.prepare(context: context, documents: library.documents, defaults: defaults)
+        do {
+            let plan = try await DailyStudy.preparedPlan(context: context, library: library, defaults: defaults)
+            saveError = library.error
+            start(plan.queue)
+        } catch is CancellationError { return }
+        catch {
+            saveError = L10n.string("study.prepareError")
+            start(DailyStudy.plan(allCards, defaults: defaults).queue)
         }
-        let cards = (try? context.fetch(FetchDescriptor<Card>())) ?? allCards
-        start(DailyStudy.plan(cards, defaults: defaults).queue)
     }
 
     private func startFreeRound() {
@@ -136,9 +134,7 @@ struct ReviewView: View {
 
     /// Sets up the current card: a new word starts with its introduction, anything else with recall.
     private func begin() {
-        choice = nil; correct = nil
         guard let item = flow.current, let card = sessionCards[item.id] else { options = []; return }
-        step = flow.step
         options = step == .recall
             ? MeaningChoices.make(answer: quizMeaning(for: card), card: card, among: allCards, meaning: quizMeaning(for:))
             : []
@@ -154,17 +150,15 @@ struct ReviewView: View {
 
     private func choose(_ option: String?) {
         guard step == .recall, let card = currentCard else { return }
-        choice = option
         let isCorrect = option.map { MeaningChoices.normalized($0) == MeaningChoices.normalized(quizMeaning(for: card)) } ?? false
-        correct = isCorrect
         if isCorrect { recallFeedback += 1 } else { missFeedback += 1 }
         // The choices stay where they were; only their marks arrive, so the learner sees what they picked graded.
-        withAnimation(ReaderMotion.veil(reduceMotion: reduceMotion)) { step = .result }
+        withAnimation(ReaderMotion.veil(reduceMotion: reduceMotion)) { flow.reveal(choice: option, correct: isCorrect) }
     }
 
     private func reveal() {
         guard step == .recall else { return }
-        withAnimation(.easeOut(duration: 0.2)) { step = .result }
+        withAnimation(.easeOut(duration: 0.2)) { flow.reveal() }
     }
 
     /// Applies the answer to the schedule (daily only) and moves on. Missed words return later in the session.
@@ -188,7 +182,7 @@ struct ReviewView: View {
         if session == .daily {
             Task {
                 let plan = DailyStudy.plan(allCards, defaults: defaults)
-                await StudyReminders.shared.refresh(defaults: defaults, completed: plan.remaining == 0 || (plan.completed > 0 && plan.queue.isEmpty && plan.nextLearningDate == nil))
+                await StudyReminders.shared.refresh(defaults: defaults, completed: plan.suppressesTodayReminder)
             }
         }
     }
@@ -339,9 +333,7 @@ struct ReviewView: View {
             }
             if !c.sourceID.isEmpty, step != .recall {
                 Button("Go to source") {
-                    dismiss(); app.showStudy = false; app.showReview = false
-                    if c.sourceKind == "pdf" { app.jumpDoc = (c.sourceID, Int(c.sourcePos)); app.tab = .documents }
-                    else { app.jumpMaterial = (c.sourceID, c.sourcePos); app.tab = .read }
+                    open(c.sourceKind == "pdf" ? .document(id: c.sourceID, page: Int(c.sourcePos)) : .material(id: c.sourceID, position: c.sourcePos))
                 }.font(Theme.Fonts.meta).frame(minHeight: 44)
             }
             audioControls(c)
@@ -601,16 +593,13 @@ struct ReviewView: View {
     private func practiseWithCoach(_ cards: [Card]) {
         guard let language = cards.first?.languageCode else { return }
         let words = cards.map(\.word).joined(separator: L10n.string("list.separator"))
-        dismiss(); app.showStudy = false; app.showReview = false
+        dismiss()
         app.askCoach(L10n.format("review.coachPrompt", words), languageCode: language)
     }
 
     private func open(_ source: ReviewSource) {
-        dismiss(); app.showStudy = false; app.showReview = false
-        switch source {
-        case .material(let id, let position): app.jumpMaterial = (id, position); app.tab = .read
-        case .document(let id, let page): app.jumpDoc = (id, page); app.tab = .documents
-        }
+        dismiss()
+        app.open(source)
     }
 }
 

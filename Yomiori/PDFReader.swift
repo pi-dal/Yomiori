@@ -24,22 +24,23 @@ import PDFKit
     }
 
     @discardableResult
-    func annotate(_ kind: PDFAnnotationSubtype, color: UIColor) -> [[Double]] {
+    func annotate(_ kind: PDFAnnotationSubtype, color: UIColor, id: UUID = UUID()) -> [PDFAnnotation] {
         guard let selection = activeSelection else { return [] }
-        var rects: [[Double]] = []
+        var added: [PDFAnnotation] = []
         for line in selection.selectionsByLine() {
             for page in line.pages {
                 let bounds = line.bounds(for: page)
                 let annotation = PDFAnnotation(bounds: bounds, forType: kind, withProperties: nil)
                 annotation.color = kind == .highlight ? color : .label
-                rects.append([bounds.minX, bounds.minY, bounds.width, bounds.height])
+                annotation.setValue(id.uuidString, forAnnotationKey: PDFAnnotationKey(rawValue: "/NM"))
+                added.append(annotation)
                 annotation.quadrilateralPoints = [CGPoint(x: 0, y: bounds.height), CGPoint(x: bounds.width, y: bounds.height),
                                                  CGPoint(x: 0, y: 0), CGPoint(x: bounds.width, y: 0)].map { NSValue(cgPoint: $0) }
                 page.addAnnotation(annotation)
             }
         }
         clearSelection()
-        return rects
+        return added
     }
 }
 
@@ -87,6 +88,7 @@ struct PDFReader: UIViewRepresentable {
 
     func updateUIView(_ view: PDFView, context: Context) {
         context.coordinator.parent = self
+        if view.document !== pdf { view.document = pdf }
         if !context.coordinator.restoringPosition,
            let destination = pdf.page(at: page), view.currentPage != destination {
             view.go(to: destination)

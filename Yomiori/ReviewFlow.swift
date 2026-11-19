@@ -44,7 +44,19 @@ struct ReviewSessionQueue: Equatable {
 
     var current: ReviewItem? { items.first }
     var isEmpty: Bool { items.isEmpty }
-    var step: ReviewStep { current?.needsIntro == true ? .intro : .recall }
+    struct Answer: Equatable {
+        let choice: String?
+        let correct: Bool?
+    }
+    private(set) var answer: Answer?
+    var step: ReviewStep {
+        if answer != nil { return .result }
+        return current?.needsIntro == true ? .intro : .recall
+    }
+    mutating func reveal(choice: String? = nil, correct: Bool? = nil) {
+        guard current != nil, step == .recall else { return }
+        answer = Answer(choice: choice, correct: correct)
+    }
 
     /// The new word has been met; it returns for recall after a few other cards.
     mutating func finishIntro() {
@@ -59,6 +71,7 @@ struct ReviewSessionQueue: Equatable {
     /// Records the current recall attempt and advances the queue.
     @discardableResult mutating func record(correct: Bool) -> Outcome {
         guard var item = items.first, !item.needsIntro else { return .finished }
+        answer = nil
         items.removeFirst()
         if correct {
             if item.misses == 0 { recalled.append(item.id) }

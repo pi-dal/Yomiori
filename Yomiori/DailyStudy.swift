@@ -18,6 +18,8 @@ struct StudyPlan {
     let completed: Int
     let introduced: Int
     let remaining: Int
+    var destination: StudyDestination { queue.isEmpty ? .today : .review }
+    var suppressesTodayReminder: Bool { remaining == 0 || (completed > 0 && queue.isEmpty && nextLearningDate == nil) }
     let newSlots: Int
     let nextLearningDate: Date?
     let minimumLevel: String?
@@ -98,14 +100,27 @@ enum StudyCardStatus {
         return StudyPlan(cards: cards, reviewLimit: reviewLimit(defaults), newLimit: newLimit(defaults), language: language, minimumLevel: minimumLevel(defaults, language: language), now: now)
     }
 
+    static func preparedPlan(context: ModelContext, library: WordListLibrary, defaults: UserDefaults) async throws -> StudyPlan {
+        let generation = Operations.shared.generation
+        await library.load()
+        try Operations.shared.checkpoint(generation)
+        try prepare(context: context, documents: library.documents, defaults: defaults)
+        return plan(try context.fetch(FetchDescriptor<Card>()), defaults: defaults)
+    }
+
     /// Local definitions only. Saving never silently starts an AI request or downloads audio.
     @discardableResult static func addSaved(_ entry: DictEntry, context: ModelContext) throws -> Card? {
-        guard entry.kind == "word", !entry.meaning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
-        let language = entry.languageCode, term = QuickDictionary.normalized(entry.term)
+        let language = entry.languageCode
         let existing = try context.fetch(FetchDescriptor<Card>(predicate: #Predicate { $0.languageCode == language }))
-        guard !existing.contains(where: { QuickDictionary.normalized($0.word) == term }) else { return nil }
+        var words = Set(existing.map { QuickDictionary.normalized($0.word) })
+        return insertSaved(entry, existingWords: &words, context: context)
+    }
+
+    private static func insertSaved(_ entry: DictEntry, existingWords: inout Set<String>, context: ModelContext) -> Card? {
+        guard entry.kind == "word", !entry.meaning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              existingWords.insert(QuickDictionary.normalized(entry.term)).inserted else { return nil }
         let card = Card(sentence: entry.context.isEmpty ? entry.term : entry.context, word: entry.term)
-        card.languageCode = language; card.reading = entry.reading; card.meaning = entry.meaning
+        card.languageCode = entry.languageCode; card.reading = entry.reading; card.meaning = entry.meaning
         card.sourceID = entry.sourceID; card.sourceName = entry.sourceName; card.sourcePos = entry.sourcePos
         card.sourceKind = entry.sourceKind
         context.insert(card)
@@ -120,24 +135,26 @@ enum StudyCardStatus {
         guard slots > 0 else { return }
         let language = defaults.string(forKey: "targetLang") ?? "ja"
         let minimum = minimumLevel(defaults, language: language)
-        let entries = try context.fetch(FetchDescriptor<DictEntry>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)]))
         var inserted: [Card] = []
+        var terms = Set(cards.filter { $0.languageCode == language }.map { QuickDictionary.normalized($0.word) })
         do {
-            for entry in entries where slots > 0 && entry.languageCode == language && defaults.object(forKey: "study.autoCards") as? Bool != false {
-                if let card = try addSaved(entry, context: context) { inserted.append(card); slots -= 1 }
+            if defaults.object(forKey: "study.autoCards") as? Bool != false {
+                let entries = try context.fetch(FetchDescriptor<DictEntry>(predicate: #Predicate { $0.languageCode == language && $0.kind == "word" }, sortBy: [SortDescriptor(\.createdAt, order: .reverse)]))
+                for entry in entries {
+                    if let card = insertSaved(entry, existingWords: &terms, context: context) { inserted.append(card); slots -= 1 }
+                    if slots == 0 { break }
+                }
             }
             let source = defaults.string(forKey: "study.source") ?? "automatic"
             let document = source == "saved" ? nil : documents.first { $0.id == source && $0.language == language }
                 ?? (source == "automatic" ? documents.first { $0.language == language } : nil)
             if slots > 0, let document {
-                let existing = try context.fetch(FetchDescriptor<Card>())
-                let ids = IELTSCardWriter.savedIDs(existing, listID: document.id)
-                var terms = Set(existing.filter { $0.languageCode == language }.map { QuickDictionary.normalized($0.word) })
+                let ids = IELTSCardWriter.savedIDs(cards, listID: document.id)
                 let candidates = document.entries.filter { word in
                     !ids.contains(word.id) && WordLevel.meets(word.level, minimum: minimum) && terms.insert(QuickDictionary.normalized(word.w)).inserted
                 }
                 // Easiest first, starting just above what the learner already recalls reliably.
-                let words = WordProgression.next(candidates, count: slots, document: document, cards: existing, minimum: minimum)
+                let words = WordProgression.next(candidates, count: slots, document: document, cards: cards, minimum: minimum)
                 // This writer saves atomically; it also commits the saved-word cards above.
                 try IELTSCardWriter.add(words, context: context, document: document)
             } else { try context.save() }

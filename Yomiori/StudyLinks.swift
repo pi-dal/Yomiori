@@ -168,7 +168,7 @@ import SwiftData
 
     static func exists(_ correction: Correction, message: ChatMsg, in cards: [Card]) -> Bool {
         let sentence = sentence(message.content, correction: correction)
-        return cards.contains { $0.sourceKind == "coach" && $0.word == correction.right && $0.sentence == sentence && $0.languageCode == message.languageCode }
+        return cards.contains { $0.word == correction.right && $0.sentence == sentence && $0.languageCode == message.languageCode }
     }
 
     @discardableResult static func add(_ correction: Correction, message: ChatMsg, context: ModelContext, now: Date = Date()) throws -> Card? {
@@ -187,41 +187,5 @@ import SwiftData
         context.insert(card)
         do { try context.save() } catch { context.delete(card); throw error }
         return card
-    }
-}
-
-/// Behaviour-based measures that keep growing. No scores and no streak: missed days never take anything away.
-struct GrowthTrack: Equatable {
-    enum Kind: CaseIterable { case wordsStuck, hours, activeDays, expressions }
-    let kind: Kind
-    let value: Int
-
-    static func tiers(_ kind: Kind) -> [Int] {
-        switch kind {
-        case .wordsStuck: [10, 25, 50, 100, 250, 500, 1000, 2000]
-        case .hours: [1, 5, 10, 25, 50, 100, 250, 500]
-        case .activeDays: [3, 7, 14, 30, 60, 100, 200, 365]
-        case .expressions: [1, 10, 25, 50, 100, 250, 500]
-        }
-    }
-
-    /// The last milestone reached; beyond the listed tiers, milestones continue at the largest step.
-    var reached: Int? { Self.sequence(kind, through: value).last { $0 <= value } }
-    var next: Int {
-        let tiers = Self.tiers(kind)
-        if let next = tiers.first(where: { $0 > value }) { return next }
-        let step = tiers.last ?? 1
-        return (value / step + 1) * step
-    }
-    /// Progress from the last milestone towards the next one.
-    var fraction: Double {
-        let start = Double(reached ?? 0), end = Double(next)
-        return end > start ? min(1, max(0, (Double(value) - start) / (end - start))) : 1
-    }
-
-    private static func sequence(_ kind: Kind, through value: Int) -> [Int] {
-        let tiers = tiers(kind)
-        guard let last = tiers.last, value >= last else { return tiers }
-        return tiers + Array(stride(from: last * 2, through: value, by: last))
     }
 }

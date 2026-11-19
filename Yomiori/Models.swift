@@ -112,12 +112,7 @@ struct SubLine: Codable, Identifiable, Hashable, Sendable {
     var lastPage = 0
     var translationsData: Data = Data()
     init(title: String, fileName: String) { self.title = title; self.fileName = fileName }
-    func readTranslations() throws -> [String: [String]] {
-        translationsData.isEmpty ? [:] : try JSONDecoder().decode([String: [String]].self, from: translationsData)
-    }
-    func writeTranslations(_ values: [String: [String]]) throws {
-        translationsData = try JSONEncoder().encode(values)
-    }
+
 }
 
 @Model final class ChatMsg {

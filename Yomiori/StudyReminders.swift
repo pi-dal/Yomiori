@@ -36,6 +36,8 @@ struct StudyReminderSchedule {
     static let shared = StudyReminders()
     var openStudy = false
     var failure: String?
+    private var permissionCheck = UUID()
+    private var scheduledDates: [DateComponents]?
     private var revision = UUID()
     private let client: any StudyNotificationClient
     private let storage: UserDefaults
@@ -58,6 +60,8 @@ struct StudyReminderSchedule {
     }
 
     func cancel() {
+        permissionCheck = UUID()
+        scheduledDates = nil
         revision = UUID()
         let ids = (storage.stringArray(forKey: "study.notificationIDs") ?? []) + (0..<30).map { "yomiori.study.\($0)" }
         client.remove(ids)
@@ -68,21 +72,25 @@ struct StudyReminderSchedule {
         #if DEBUG
         if client is SystemStudyNotifications, ProcessInfo.processInfo.arguments.contains("--library-design-preview") { return }
         #endif
-        cancel()
-        guard defaults.bool(forKey: "study.reminders"), !Operations.shared.resetPending else { return }
-        let token = revision
+        guard defaults.bool(forKey: "study.reminders"), !Operations.shared.resetPending else { cancel(); return }
+        let token = UUID()
+        permissionCheck = token
         let authorization = await client.authorization()
-        guard token == revision else { return }
+        guard token == permissionCheck else { return }
         guard authorization == .authorized || authorization == .provisional else {
-            failure = L10n.string("study.notificationsDenied"); return
+            cancel(); failure = L10n.string("study.notificationsDenied"); return
         }
         let hour = defaults.object(forKey: "study.hour") == nil ? 20 : defaults.integer(forKey: "study.hour")
         let dates = StudyReminderSchedule.dates(now: now, hour: hour, minute: defaults.integer(forKey: "study.minute"), skipToday: completed)
+        guard dates != scheduledDates || failure != nil else { return }
+        cancel()
+        let schedulingRevision = revision
+        scheduledDates = dates
         failure = nil
-        let identifiers = dates.indices.map { "yomiori.study.\(token.uuidString).\($0)" }
+        let identifiers = dates.indices.map { "yomiori.study.\(schedulingRevision.uuidString).\($0)" }
         storage.set(identifiers, forKey: "study.notificationIDs")
         for (index, date) in dates.enumerated() {
-            guard token == revision else { return }
+            guard schedulingRevision == revision else { return }
             let content = UNMutableNotificationContent()
             content.title = L10n.string("study.reminderTitle")
             content.body = L10n.string("study.reminderBody")
@@ -91,11 +99,11 @@ struct StudyReminderSchedule {
             do {
                 try await client.add(UNNotificationRequest(identifier: identifiers[index], content: content,
                                                           trigger: UNCalendarNotificationTrigger(dateMatching: date, repeats: false)))
-                if token != revision {
+                if schedulingRevision != revision {
                     client.remove([identifiers[index]])
                     return
                 }
-            } catch { if token == revision { failure = L10n.string("study.notificationsError") }; return }
+            } catch { if schedulingRevision == revision { failure = L10n.string("study.notificationsError") }; return }
         }
     }
 

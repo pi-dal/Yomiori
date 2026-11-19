@@ -2,6 +2,10 @@ import Foundation
 import SwiftData
 
 @MainActor enum CardMining {
+    static func predicate(word: String, sentence: String, source: String) -> Predicate<Card> {
+        #Predicate { $0.word == word && $0.sentence == sentence && $0.sourceID == source }
+    }
+
     /// Prepare optional enrichments before creating models. Only a current task can commit.
     static func mine(_ target: ReaderView.WordTarget, entry: Words.Entry, japaneseDefinition: Bool, context: ModelContext) async throws -> Bool {
         let generation = Operations.shared.generation
@@ -23,7 +27,7 @@ import SwiftData
         try Operations.shared.checkpoint(generation)
         // Re-check at commit; another sheet may have mined the same target meanwhile.
         let word = target.word, sentence = target.sentence, source = target.materialID
-        var descriptor = FetchDescriptor<Card>(predicate: #Predicate { $0.word == word && $0.sentence == sentence && $0.sourceID == source })
+        var descriptor = FetchDescriptor<Card>(predicate: predicate(word: word, sentence: sentence, source: source))
         descriptor.fetchLimit = 1
         if try !context.fetch(descriptor).isEmpty { return false }
         let card = Card(sentence: sentence, word: word)

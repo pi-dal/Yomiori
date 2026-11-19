@@ -105,11 +105,17 @@ struct DocumentsView: View {
                 guard case .success(let url) = result else { return }
                 do {
                     let name = try Files.importFile(url)
-                    guard let pdf = PDFDocument(url: Files.url(name)) else { throw CocoaError(.fileReadCorruptFile) }
-                    let doc = PDFDoc(title: url.deletingPathExtension().lastPathComponent, fileName: name)
-                    doc.languageCode = Prefs.target.code
-                    doc.pageCount = pdf.pageCount
-                    ctx.insert(doc); path = [doc]
+                    do {
+                        guard let pdf = PDFDocument(url: Files.url(name)) else { throw CocoaError(.fileReadCorruptFile) }
+                        let doc = PDFDoc(title: url.deletingPathExtension().lastPathComponent, fileName: name)
+                        doc.languageCode = Prefs.target.code
+                        doc.pageCount = pdf.pageCount
+                        try ctx.transaction { ctx.insert(doc) }
+                        path = [doc]
+                    } catch {
+                        try FileManager.default.removeItem(at: Files.url(name))
+                        throw error
+                    }
                 } catch { self.error = url.lastPathComponent + "\n" + L10n.string("Couldn't open this PDF.") }
             }
             .alert("Couldn't import", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
@@ -119,11 +125,16 @@ struct DocumentsView: View {
                                 isPresented: Binding(get: { toDelete != nil }, set: { if !$0 { toDelete = nil } }), titleVisibility: .visible) {
                 Button("Delete", role: .destructive) {
                     if let doc = toDelete {
-                        try? FileManager.default.removeItem(at: Files.url(doc.fileName))
                         let id = doc.id.uuidString
-                        try? ctx.delete(model: DictEntry.self, where: #Predicate { $0.sourceID == id })
-                        if lastOpenedID == doc.id.uuidString { lastOpenedID = "" }
-                        ctx.delete(doc)
+                        do {
+                            try Files.removeImport(doc.fileName) {
+                                try ctx.transaction {
+                                    try ctx.delete(model: DictEntry.self, where: #Predicate { $0.sourceID == id })
+                                    ctx.delete(doc)
+                                }
+                            }
+                            if lastOpenedID == id { lastOpenedID = "" }
+                        } catch { self.error = error.localizedDescription }
                     }
                     toDelete = nil
                 }
@@ -318,7 +329,6 @@ struct DocViewer: View {
     }
 
     private func load() {
-        guard pdf == nil else { return }
         guard let loaded = PDFDocument(url: Files.url(doc.fileName)) else { return }
         let requested: Int
         if let jump = app.jumpDoc, jump.id == doc.id.uuidString {
@@ -337,17 +347,11 @@ struct DocViewer: View {
     }
 
     private func annotate(_ kind: PDFAnnotationSubtype) {
-        let quote = coordinator.selectionText, selectedPage = coordinator.selectionPage ?? page
-        let rects = coordinator.annotate(kind, color: HL.all[0].ui)
-        if kind == .highlight, !quote.isEmpty {
-            let entry = DictEntry(term: quote, kind: "highlight", sourceKind: "pdf")
-            entry.languageCode = doc.languageCode
-            entry.colorIdx = 0; entry.context = quote; entry.sourceID = doc.id.uuidString
-            entry.sourceName = doc.title; entry.sourcePos = Double(selectedPage); entry.rects = rects
-            ctx.insert(entry)
-        }
-        if let pdf, !pdf.write(to: Files.url(doc.fileName)) { saveError = L10n.string("Couldn't save") }
-        Haptic.reveal()
+        guard let pdf else { return }
+        do {
+            try PDFMarks.add(kind, coordinator: coordinator, pdf: pdf, doc: doc, context: ctx)
+            Haptic.reveal()
+        } catch { saveError = error.localizedDescription }
     }
 
     private func saveNote() {
@@ -373,7 +377,10 @@ struct DocViewer: View {
                         if !note.note.isEmpty { Text(note.note).foregroundStyle(.secondary) }
                     }.padding(.vertical, 8)
                 }
-            }.onDelete { for index in $0 { ctx.delete(notes[index]) } }
+            }.onDelete { indexes in
+                do { for note in indexes.map({ notes[$0] }) { try note.removeFromSource(ctx, openDocument: pdf) } }
+                catch { saveError = error.localizedDescription }
+            }
         }.listStyle(.plain)
     }
 }

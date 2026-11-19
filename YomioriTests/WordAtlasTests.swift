@@ -24,10 +24,14 @@ struct WordAtlasTests {
         #expect(QuickDictionary.search(word.w, language: "en", saved: saved, documents: [document]).filter { QuickDictionary.normalized($0.term) == QuickDictionary.normalized(word.w) }.count == 1)
     }
 
-    @Test @MainActor func bundledIELTSListIsCompleteAndSearchable() async throws {
-        let store = WordAtlasStore()
-        await store.load()
-        #expect(store.error == nil)
+    @Test @MainActor func concurrentReadersCanSearchTheCompleteBundledIELTSList() async throws {
+        let library = WordListLibrary()
+        let first = Task { await library.load() }
+        while !library.loading && library.documents.isEmpty { await Task.yield() }
+        await library.load()
+        let store = WordListIndex(document: try #require(library.documents.first { $0.id == "ielts" }))
+        await first.value
+        #expect(library.error == nil)
         #expect(store.words.count == 7298)
         #expect(store.filtered(search: "MOTIVATE", level: "B2", topic: "education").contains { $0.w == "motivate" })
         #expect(store.filtered(search: "no-match-zzzzzzzz", level: "", topic: "").isEmpty)

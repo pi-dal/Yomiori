@@ -1,5 +1,6 @@
 import Foundation
 import PDFKit
+import SwiftData
 import UIKit
 import Testing
 @testable import Yomiori
@@ -70,4 +71,30 @@ import Testing
         #expect(session.error == nil && session.text == "阅读")
     }
 
+    @Test(arguments: [true, false]) func deletingHighlightUpdatesDiskAndModel(readerOpen: Bool) throws {
+        let container = try ModelContainer(for: PDFDoc.self, DictEntry.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = container.mainContext
+        let doc = PDFDoc(title: "fixture", fileName: "test-\(UUID()).pdf")
+        try FileManager.default.createDirectory(at: Files.dir, withIntermediateDirectories: true)
+        let url = Files.url(doc.fileName)
+        try PDFReadingFixture.data().write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        context.insert(doc)
+        let pdf = try #require(PDFDocument(url: url))
+        let view = PDFView(); view.document = pdf
+        let coordinator = PDFCoordinator(); coordinator.view = view
+        view.setCurrentSelection(try #require(pdf.findString("Reading", withOptions: []).first), animate: false)
+        try PDFMarks.add(.highlight, coordinator: coordinator, pdf: pdf, doc: doc, context: context)
+        let entry = try #require(context.fetch(FetchDescriptor<DictEntry>()).first)
+        let written = try Data(contentsOf: url)
+        #expect(PDFDocument(data: written)?.page(at: 0)?.annotations.count == 1)
+        try FileManager.default.removeItem(at: url)
+        #expect(throws: (any Error).self) { try entry.removeFromSource(context, openDocument: readerOpen ? pdf : nil) }
+        #expect(try context.fetchCount(FetchDescriptor<DictEntry>()) == 1)
+        #expect(pdf.page(at: 0)?.annotations.count == 1)
+        try written.write(to: url)
+        try entry.removeFromSource(context, openDocument: readerOpen ? pdf : nil)
+        #expect(PDFDocument(url: url)?.page(at: 0)?.annotations.isEmpty == true)
+        #expect(try context.fetchCount(FetchDescriptor<DictEntry>()) == 0)
+    }
 }

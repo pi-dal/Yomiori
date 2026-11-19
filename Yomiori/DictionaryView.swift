@@ -9,6 +9,7 @@ struct DictionaryView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Query(sort: \DictEntry.createdAt, order: .reverse) private var all: [DictEntry]
     @State private var search = ""
+    @State private var deleteError: String?
     @State private var showingLookup = false
     @State private var filter = "Words"
     @State private var sort = "Newest"
@@ -17,7 +18,6 @@ struct DictionaryView: View {
     @AppStorage("reviewLimit") private var limit = 30
     @AppStorage("study.newLimit") private var newLimit = 5
     @State private var reviewing = false
-    @State private var freePracticing = false
     @State private var showAllRecent = false
     private var dueCount: Int { DailyStudy.plan(cards, defaults: defaults).queue.count }
 
@@ -44,10 +44,8 @@ struct DictionaryView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                if filter != "Review" {
-                    DictionarySearchField(text: $search, prompt: filter == "Cards" ? "Search cards" : "dictionary.search")
-                        .padding(.horizontal, 24).padding(.top, 8).padding(.bottom, 8)
-                }
+                DictionarySearchField(text: $search, prompt: filter == "Cards" ? "Search cards" : "dictionary.search")
+                    .padding(.horizontal, 24).padding(.top, 8).padding(.bottom, 8)
                 if filter == "Words" {
                     Button {
                         showingLookup = true
@@ -56,11 +54,10 @@ struct DictionaryView: View {
                             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     }.padding(.horizontal, 24).accessibilityIdentifier("dictionary.lookup")
                 }
-                TextTabs(items: [("Words", "nav.words"), ("Cards", "nav.cards"), ("Lists", "nav.lists"), ("Review", "nav.review")], selection: $filter)
+                // Review lives in Today; the Cards banner is its in-place shortcut.
+                TextTabs(items: [("Words", "nav.words"), ("Cards", "nav.cards"), ("Lists", "nav.lists")], selection: $filter)
                 if filter == "Lists" {
                     WordListsView(search: search)
-                } else if filter == "Review" {
-                    List { banner }.listStyle(.plain).scrollContentBackground(.hidden).padding(.top, 24)
                 } else if filter == "Words" && all.isEmpty {
                     EmptyState(symbol: "character.book.closed", title: "dictionary.empty",
                                message: "Save words while reading to build your dictionary.",
@@ -92,7 +89,7 @@ struct DictionaryView: View {
                                     .listRowBackground(Theme.background).listRowSeparator(.visible, edges: .bottom)
                                     .listRowSeparator(.hidden, edges: .top)
                                     .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
-                            }.onDelete { i in for k in i { remove(shown[k]) } }
+                            }.onDelete { i in for entry in i.map({ shown[$0] }) { remove(entry) } }
                         }
                     }.listStyle(.plain).scrollContentBackground(.hidden)
                     .padding(.top, 8)
@@ -103,25 +100,22 @@ struct DictionaryView: View {
             .font(Theme.Fonts.body).foregroundStyle(Theme.ink)
             .navigationTitle("Dictionary").navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink { WordListsView() } label: { Image(systemName: "plus") }.accessibilityLabel("Add word list")
-                }.sharedBackgroundVisibility(.hidden)
-                ToolbarItem(placement: .topBarLeading) {
-                    Menu {
-                        NavigationLink { ImmersionView() } label: { Label("nav.immersion", systemImage: "chart.bar") }
-                        if !all.isEmpty {
+                // Lists bring their own import action; Words offer only ordering, as Read does.
+                if filter == "Words" && !all.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
                             Picker("Sort", selection: $sort) {
                                 Text("dictionary.newest").tag("Newest")
                                 Text("dictionary.alpha").tag("A to Z")
                             }
-                        }
-                    } label: { Image(systemName: "ellipsis") }
-                        .accessibilityLabel("Dictionary options")
-                }.sharedBackgroundVisibility(.hidden)
+                        } label: { Image(systemName: "arrow.up.arrow.down") }
+                            .accessibilityLabel("Dictionary options")
+                    }.sharedBackgroundVisibility(.hidden)
+                }
             }
             .fullScreenCover(isPresented: $reviewing) { ReviewView() }
-            .fullScreenCover(isPresented: $freePracticing) { ReviewView(session: .free) }
             .sheet(isPresented: $showingLookup) { QuickDictionaryView(initialQuery: search) }
+            .alert("Couldn't save", isPresented: Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })) { Button("OK") {} } message: { Text(deleteError ?? "") }
             .sheet(item: $selected) { EntryDetail(entry: $0).presentationDetents([.large]) }
         }
     }
@@ -178,17 +172,10 @@ struct DictionaryView: View {
     }
 
     @ViewBuilder private var reviewButton: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if dueCount > 0 {
-                Button { reviewing = true } label: {
-                    Label("Start review", systemImage: "play.fill")
-                }.buttonStyle(CompactActionStyle())
-            }
-            if !cards.isEmpty {
-                Button { freePracticing = true } label: {
-                    Label("study.freePractice", systemImage: "infinity")
-                }.buttonStyle(TextActionStyle()).accessibilityIdentifier("study.freePractice")
-            }
+        if dueCount > 0 {
+            Button { reviewing = true } label: {
+                Label("Start review", systemImage: "play.fill")
+            }.buttonStyle(CompactActionStyle())
         }
     }
     private func cardRow(_ c: Card) -> some View {
@@ -225,7 +212,10 @@ struct DictionaryView: View {
         return source
     }
 
-    private func remove(_ e: DictEntry) { if let c = e.modelContext { e.removeFromSource(c) } }
+    private func remove(_ entry: DictEntry) {
+        do { try entry.removeFromSource(ctx) }
+        catch { deleteError = error.localizedDescription }
+    }
 
     private func row(_ e: DictEntry) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -331,7 +321,7 @@ struct EntryDetail: View {
             .navigationTitle("Dictionary").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Done") { dismiss() } } }
             .confirmationDialog("dictionary.deleteTitle", isPresented: $confirm, titleVisibility: .visible) {
-                Button("Delete", role: .destructive) { entry.removeFromSource(ctx); dismiss() }
+                Button("Delete", role: .destructive) { do { try entry.removeFromSource(ctx); dismiss() } catch { lookupError = error.localizedDescription } }
                 Button("Cancel", role: .cancel) {}
             }
         }
@@ -375,24 +365,23 @@ struct EntryDetail: View {
     }
 }
 
-enum PDFDocumentCache {
-    static func open(_ d: PDFDoc) -> PDFDocument? { PDFDocument(url: Files.url(d.fileName)) }
-}
-
 extension DictEntry {
-    /// Deletes the entry and removes the highlight it left on its source.
-    func removeFromSource(_ ctx: ModelContext) {
-        if kind == "highlight" {
-            if sourceKind == "subtitle", let m = (try? ctx.fetch(FetchDescriptor<Material>()))?.first(where: { $0.id.uuidString == sourceID }) {
-                var ls = m.lines
-                if let i = ls.firstIndex(where: { abs($0.start - sourcePos) < 0.01 }) { ls[i].hl = nil; m.lines = ls }
-            } else if sourceKind == "pdf", let d = (try? ctx.fetch(FetchDescriptor<PDFDoc>()))?.first(where: { $0.id.uuidString == sourceID }),
-                      let pdf = PDFDocument(url: Files.url(d.fileName)), let page = pdf.page(at: Int(sourcePos)) {
-                for a in page.annotations where a.type == "Highlight" && rects.contains(where: { $0.count >= 2 && abs($0[0] - a.bounds.minX) < 0.5 && abs($0[1] - a.bounds.minY) < 0.5 }) { page.removeAnnotation(a) }
-                pdf.write(to: Files.url(d.fileName))
+    @MainActor func removeFromSource(_ ctx: ModelContext, openDocument: PDFDocument? = nil) throws {
+        if kind == "highlight", let id = UUID(uuidString: sourceID) {
+            if sourceKind == "pdf", let doc = try ctx.fetch(FetchDescriptor<PDFDoc>(predicate: #Predicate { $0.id == id })).first {
+                try PDFMarks.remove(self, from: doc, openDocument: openDocument, context: ctx)
+                return
+            }
+            if sourceKind == "subtitle", let material = try ctx.fetch(FetchDescriptor<Material>(predicate: #Predicate { $0.id == id })).first {
+                var lines = try material.readLines()
+                if let index = lines.firstIndex(where: { abs($0.start - sourcePos) < 0.01 }) {
+                    lines[index].hl = nil
+                    try material.writeLines(lines)
+                }
             }
         }
         ctx.delete(self)
+        do { try ctx.save() } catch { ctx.rollback(); throw error }
     }
 }
 

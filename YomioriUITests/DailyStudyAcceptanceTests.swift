@@ -75,6 +75,25 @@ import XCTest
         app.buttons["review.finish"].tap()
         XCTAssertTrue(dailyQueue.waitForExistence(timeout: 5))
     }
+    func testFirstRunOffersSourcesThenStartsEnglishStudy() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--library-design-preview", "--empty-library-preview", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        // Nothing to study yet: no "caught up" message, just the language and the sources.
+        XCTAssertTrue(app.staticTexts["Your next read starts here."].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["study.start"].exists)
+        XCTAssertFalse(app.staticTexts["You’re caught up for now."].exists)
+        let language = app.buttons["read.learningLanguage"]
+        XCTAssertTrue(language.waitForExistence(timeout: 5), app.debugDescription)
+        language.tap()
+        let english = app.buttons["English"].firstMatch
+        XCTAssertTrue(english.waitForExistence(timeout: 5), app.debugDescription)
+        english.tap()
+        // The bundled English word book supplies today's first words without any import.
+        XCTAssertTrue(app.buttons["study.start"].waitForExistence(timeout: 15))
+        app.buttons["study.start"].tap()
+        XCTAssertTrue(app.buttons["review.gotIt"].waitForExistence(timeout: 10) || app.buttons["review.dontKnow"].exists)
+    }
     func testChineseAccessibleStudySettings() {
         let app = XCUIApplication()
         app.launchArguments = ["--library-design-preview", "--daily-study-preview", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]

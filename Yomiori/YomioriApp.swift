@@ -50,27 +50,37 @@ struct YomioriApp: App {
 
 enum AppTab: Hashable { case read, documents, dictionary, coach }
 
+enum StudyDestination: String, Identifiable {
+    case today, review
+    var id: Self { self }
+}
+
 @Observable
 final class AppState {
     var tab: AppTab = .read
-    /// Today: the plan, progress and next steps.
-    var showStudy = false
-    /// Today's review, opened directly so starting study is one tap.
-    var showReview = false
+    var studyDestination: StudyDestination?
     var pendingCoachPrompt: String?
     var pendingContext: String?
     /// "Go to source": open a subtitle at a time, or a PDF at a page.
     var jumpMaterial: (id: String, time: Double)?
     var jumpDoc: (id: String, page: Int)?
     func resetNavigation() {
-        tab = .read; showStudy = false; showReview = false; pendingCoachPrompt = nil; pendingContext = nil; jumpMaterial = nil; jumpDoc = nil
+        tab = .read; studyDestination = nil; pendingCoachPrompt = nil; pendingContext = nil; jumpMaterial = nil; jumpDoc = nil
     }
     func goToSource(_ e: DictEntry) {
-        if e.sourceKind == "subtitle" { jumpMaterial = (e.sourceID, e.sourcePos); tab = .read }
-        else if e.sourceKind == "pdf" { jumpDoc = (e.sourceID, Int(e.sourcePos)); tab = .documents }
+        if e.sourceKind == "subtitle" { open(.material(id: e.sourceID, position: e.sourcePos)) }
+        else if e.sourceKind == "pdf" { open(.document(id: e.sourceID, page: Int(e.sourcePos))) }
+    }
+    func open(_ source: ReviewSource) {
+        studyDestination = nil
+        switch source {
+        case .material(let id, let time): jumpMaterial = (id, time); tab = .read
+        case .document(let id, let page): jumpDoc = (id, page); tab = .documents
+        }
     }
     func askCoach(_ prompt: String, context: String? = nil, languageCode: String? = nil) {
         if let languageCode { UserDefaults.standard.set(languageCode, forKey: "targetLang") }
+        studyDestination = nil
         pendingCoachPrompt = prompt
         pendingContext = context
         tab = .coach
@@ -110,7 +120,11 @@ struct RootView: View {
         }
         .tabBarMinimizeBehavior(.onScrollDown)
         .modifier(StudyLifecycle())
-        .fullScreenCover(isPresented: $app.showStudy) { DailyStudyView() }
-        .fullScreenCover(isPresented: $app.showReview) { ReviewView(session: .daily) }
+        .fullScreenCover(item: $app.studyDestination) { destination in
+            switch destination {
+            case .today: DailyStudyView()
+            case .review: ReviewView(session: .daily)
+            }
+        }
     }
 }

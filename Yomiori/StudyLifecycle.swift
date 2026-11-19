@@ -11,9 +11,12 @@ struct StudyLifecycle: ViewModifier {
     @State private var library = WordListLibrary.shared
     @State private var revision = 0
     @State private var error: String?
+    @AppStorage("targetLang") private var language = "ja"
     func body(content: Content) -> some View {
         content
             .task(id: revision) { await refresh() }
+            // A new learning language gets its own first words right away.
+            .onChange(of: language) { _, _ in revision += 1 }
             .onChange(of: phase) { _, phase in if phase == .active { revision += 1 } }
             .onChange(of: reminders.openStudy) { _, value in route(value) }
             .onAppear { route(reminders.openStudy) }
@@ -25,20 +28,17 @@ struct StudyLifecycle: ViewModifier {
     }
     private func route(_ value: Bool) {
         guard value, !Operations.shared.resetPending else { return }
-        reminders.openStudy = false; app.tab = .read
-        // A reminder opens review when there is something to review, otherwise Today.
-        let cards = (try? context.fetch(FetchDescriptor<Card>())) ?? []
-        if DailyStudy.plan(cards, defaults: defaults).queue.isEmpty { app.showStudy = true } else { app.showReview = true }
+        revision += 1
     }
     private func refresh() async {
-        let generation = Operations.shared.generation
-        await library.load()
         do {
-            try Operations.shared.checkpoint(generation)
-            try DailyStudy.prepare(context: context, documents: library.documents, defaults: defaults)
-            let cards = try context.fetch(FetchDescriptor<Card>())
-            let plan = DailyStudy.plan(cards, defaults: defaults)
-            await reminders.refresh(defaults: defaults, completed: plan.remaining == 0 || (plan.completed > 0 && plan.queue.isEmpty && plan.nextLearningDate == nil))
+            let plan = try await DailyStudy.preparedPlan(context: context, library: library, defaults: defaults)
+            if reminders.openStudy {
+                reminders.openStudy = false
+                app.tab = .read
+                app.studyDestination = plan.destination
+            }
+            await reminders.refresh(defaults: defaults, completed: plan.suppressesTodayReminder)
         } catch { if !(error is CancellationError) { self.error = L10n.string("study.prepareError") } }
     }
 }

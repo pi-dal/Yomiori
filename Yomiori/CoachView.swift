@@ -25,6 +25,7 @@ struct CoachView: View {
     @State private var showingAI = false
     @State private var showingLive = false
     @State private var showingLookup = false
+    @State private var confirmingClear = false
     @State private var lookupSentence = ""
     @ScaledMetric(relativeTo: .subheadline) private var sendDiameter: CGFloat = 32
 
@@ -69,11 +70,10 @@ struct CoachView: View {
                     Button { showWeak = true } label: { Image(systemName: "chart.bar.xaxis") }
                         .accessibilityLabel("Weaknesses")
                 }.sharedBackgroundVisibility(.hidden)
-                if !msgs.isEmpty {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { session.clear(language: languageCode, modelContext: ctx) } label: { Image(systemName: "trash") }.accessibilityLabel("Clear chat")
-                    }
-                }
+            }
+            .confirmationDialog("coach.clearTitle", isPresented: $confirmingClear, titleVisibility: .visible) {
+                Button("Clear chat", role: .destructive) { session.clear(language: languageCode, modelContext: ctx) }
+                Button("Cancel", role: .cancel) {}
             }
             .onChange(of: languageCode) { _, _ in session.invalidate(); context = nil; input = "" }
             .onDisappear { session.invalidate() }
@@ -92,9 +92,16 @@ struct CoachView: View {
                 Text("Japanese").tag("ja"); Text("English").tag("en")
             }
             Picker("coach.stage", selection: $stage) {
-                ForEach(CoachStage.allCases, id: \.self) { value in Text(value.label).tag(value.rawValue) }
+                // Menu items show the second line as a subtitle, so the stage explains itself where it is chosen.
+                ForEach(CoachStage.allCases, id: \.self) { value in
+                    VStack { Text(value.label); Text(value.detail) }.tag(value.rawValue)
+                }
             }
             Button("AI-generated content") { showingAI = true }
+            if !msgs.isEmpty {
+                Divider()
+                Button("Clear chat", systemImage: "trash", role: .destructive) { confirmingClear = true }
+            }
         } label: {
             HStack(spacing: 7) {
                 Text(Language.find(languageCode).displayName + " · " + (CoachStage(rawValue: stage) ?? .beginner).label)
@@ -118,18 +125,10 @@ struct CoachView: View {
                 Text("Start with a thought. We’ll work on the language together.")
                     .font(.body).foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true).padding(.bottom, 28)
-                Button {
-                    session.cancelReply(); focused = false; showingLive = true
-                } label: {
-                    Label("Start voice conversation", systemImage: "waveform")
-                }.buttonStyle(CompactActionStyle()).padding(.bottom, 20)
+                // Starters fill the composer; voice and weaknesses keep their single homes in the composer and toolbar.
                 conversationStarter("Talk about my day", prompt: "Help me talk about my day.")
                 conversationStarter("Practice a café order", prompt: "Let’s practice ordering at a café.")
                 conversationStarter("Use my saved words", prompt: "Help me practice with my saved words.")
-                Button { showWeak = true } label: {
-                    Label("Practice & improve", systemImage: "chart.bar")
-                        .font(.subheadline).frame(minHeight: 44)
-                }.buttonStyle(TextActionStyle()).padding(.top, 20)
             }
             .frame(maxWidth: 640, alignment: .leading).padding(.horizontal, 24).padding(.bottom, 24).frame(maxWidth: .infinity)
         }
@@ -201,10 +200,11 @@ struct CoachView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 CoachMessageContent(text: m.content)
+                // Lookup serves the Coach's language, not the learner's own lines.
+                Button("Look up a word", systemImage: "character.book.closed") {
+                    lookupSentence = m.content; showingLookup = true
+                }.buttonStyle(TextActionStyle())
             }
-            Button("Look up a word", systemImage: "character.book.closed") {
-                lookupSentence = m.content; showingLookup = true
-            }.buttonStyle(TextActionStyle())
             if m.role == "user" {
                 ForEach(m.corrections, id: \.self) { c in
                     VStack(alignment: .leading, spacing: 0) {

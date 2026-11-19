@@ -14428,20 +14428,6 @@
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "已学 %lld / %lld 个词" } }
       }
     },
-    "wordBook.total": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Total" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "总词数" } }
-      }
-    },
-    "wordBook.learned": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Learned" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已学" } }
-      }
-    },
     "wordBook.due": {
       "extractionState": "manual",
       "localizations": {
@@ -14461,20 +14447,6 @@
       "localizations": {
         "en": { "stringUnit": { "state": "translated", "value": "Needs work" } },
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "易错词" } }
-      }
-    },
-    "wordBook.todayGoal": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Daily new words" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "每日新词" } }
-      }
-    },
-    "wordBook.todayIntroduced": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "%lld added today" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "今日已新增 %lld 个" } }
       }
     },
     "wordBook.startDaily": {
@@ -14920,8 +14892,8 @@
     "journey.todaySummary": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "%lld of %lld anchors complete" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已完成 %lld / %lld 个锚点" } }
+        "en": { "stringUnit": { "state": "translated", "value": "%lld of %lld done today" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "今天已完成 %lld / %lld 项" } }
       }
     },
     "journey.todayStats": {
@@ -15020,83 +14992,6 @@
       "localizations": {
         "en": { "stringUnit": { "state": "translated", "value": "Say or write one thing you noticed" } },
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "说或写下一个你注意到的表达" } }
-      }
-    },
-    "journey.roadmap": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "The long route" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "长期路线" } }
-      }
-    },
-    "journey.currentFocus": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Your current focus" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "你现在的重点" } }
-      }
-    },
-    "journey.phase.foundation": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Build the foundation" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "建立基础" } }
-      }
-    },
-    "journey.phase.foundationDetail": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Make review and contact with the language easy to repeat." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "让复习和接触语言变成容易重复的事。" } }
-      }
-    },
-    "journey.phase.understanding": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Build understanding" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "提升理解" } }
-      }
-    },
-    "journey.phase.understandingDetail": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Choose content that keeps you curious and gradually become comfortable with ambiguity." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "选择能让你保持好奇的内容，逐渐习惯暂时不懂。" } }
-      }
-    },
-    "journey.phase.expression": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Start expressing" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "开始表达" } }
-      }
-    },
-    "journey.phase.expressionDetail": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Use what you have understood, then return to input when you get stuck." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "把已经理解的内容用出来，卡住时再回到输入。" } }
-      }
-    },
-    "journey.phase.expansion": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Keep expanding" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "持续扩展" } }
-      }
-    },
-    "journey.phase.expansionDetail": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Repeat the loop with new topics, voices and forms of expression." } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "把这个循环带到新的主题、声音和表达方式中。" } }
-      }
-    },
-    "journey.milestones": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Milestones" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "里程碑" } }
       }
     },
     "study.freePractice": {
@@ -15472,8 +15367,8 @@
     "journey.openDetail": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Words stuck: %1$lld · active %2$lld of 7 days this week" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已记牢 %1$lld 个词 · 本周活跃 %2$lld / 7 天" } }
+        "en": { "stringUnit": { "state": "translated", "value": "Words stuck: %1$lld · immersed %2$lld of 7 days this week" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已记牢 %1$lld 个词 · 本周沉浸 %2$lld / 7 天" } }
       }
     },
     "journey.progress": {
@@ -15507,8 +15402,8 @@
     "journey.weekActive": {
       "extractionState": "manual",
       "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Active this week" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "本周活跃" } }
+        "en": { "stringUnit": { "state": "translated", "value": "Immersion this week" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "本周沉浸" } }
       }
     },
     "journey.weekValue": {
@@ -15537,69 +15432,6 @@
       "localizations": {
         "en": { "stringUnit": { "state": "translated", "value": "A word has stuck once you recall it well enough to wait three weeks before the next review. Missed days never take progress away." } },
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "一个词的复习间隔达到三周，就算记牢了。错过的日子不会让进展倒退。" } }
-      }
-    },
-    "journey.track.words": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Words that stuck" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "记牢的词" } }
-      }
-    },
-    "journey.track.hours": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Hours immersed" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "沉浸小时数" } }
-      }
-    },
-    "journey.track.days": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Active days" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "活跃天数" } }
-      }
-    },
-    "journey.track.expressions": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Your own expressions" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "自己的表达" } }
-      }
-    },
-    "journey.track.reachedNext": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "Reached %1$lld · next at %2$lld" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已达成 %1$lld · 下一个 %2$lld" } }
-      }
-    },
-    "journey.track.next": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "First milestone at %lld" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "第一个里程碑：%lld" } }
-      }
-    },
-    "journey.phase.foundationProgress": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "%lld of 7 active days" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已活跃 %lld / 7 天" } }
-      }
-    },
-    "journey.phase.understandingProgress": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "%1$@ of 10 h immersed · %2$lld of 50 words stuck" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "沉浸 %1$@ / 10 小时 · 记牢 %2$lld / 50 个词" } }
-      }
-    },
-    "journey.phase.expressionProgress": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": { "stringUnit": { "state": "translated", "value": "%lld of 20 messages to Coach" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "已给 Coach 发 %lld / 20 条消息" } }
       }
     },
     "%@ has stuck": {

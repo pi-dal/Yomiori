@@ -3,45 +3,22 @@ import SwiftData
 import AVFoundation
 import CryptoKit
 
-@MainActor @Observable
-final class WordAtlasStore {
-    static let shared = WordAtlasStore()
-    private(set) var words: [AtlasWord] = []
-    private(set) var levels: [String] = []
-    private(set) var topics: [String] = []
-    private(set) var loading = false
-    private(set) var error: String?
-    private(set) var document: WordListDocument?
-    init(document: WordListDocument? = nil) { if let document { install(document) } }
-    private func install(_ document: WordListDocument) {
+struct WordListIndex {
+    let document: WordListDocument
+    let levels: [String]
+    let topics: [String]
+    var words: [AtlasWord] { document.entries }
+    private let searchIndex: [String: String]
+
+    init(document: WordListDocument) {
         self.document = document
-        words = document.entries
+        let words = document.entries
         levels = Array(Set(words.map(\.cefr).filter { !$0.isEmpty })).sorted()
         topics = Array(Set(words.map(\.topic))).sorted()
         searchIndex = Dictionary(uniqueKeysWithValues: words.map { word in
             (word.id, ([word.w, word.id, word.topic, word.cefr] + word.senses.flatMap { [$0.en, $0.zh] })
                 .joined(separator: " ").folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current))
         })
-    }
-    private var searchIndex: [String: String] = [:]
-
-    func load() async {
-        guard words.isEmpty, !loading else { return }
-        loading = true
-        error = nil
-        defer { loading = false }
-        guard let url = Bundle.main.url(forResource: "word-atlas", withExtension: "json") else {
-            error = L10n.string("The offline word list is missing from this installation.")
-            return
-        }
-        do {
-            let document = try await Task.detached(priority: .userInitiated) {
-                try WordListDocument.decodeValidated(Data(contentsOf: url))
-            }.value
-            install(document)
-        } catch {
-            self.error = L10n.string("The offline word list could not be opened. Please try again.")
-        }
     }
 
     func filtered(search: String, level: String, topic: String) -> [AtlasWord] {
@@ -169,9 +146,9 @@ struct WordListsView: View {
 struct IELTSWordListView: View {
     @Environment(\.modelContext) private var context
     @Query private var cards: [Card]
-    @State private var store: WordAtlasStore
-    init(document: WordListDocument? = nil) { _store = State(initialValue: document.map { WordAtlasStore(document: $0) } ?? WordAtlasStore.shared) }
-    private var listID: String { store.document?.id ?? "ielts" }
+    @State private var store: WordListIndex
+    init(document: WordListDocument) { _store = State(initialValue: WordListIndex(document: document)) }
+    private var listID: String { store.document.id }
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var search = ""
     @State private var level = ""
@@ -189,13 +166,13 @@ struct IELTSWordListView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(Language.find(store.document?.language ?? "en").displayName).font(Theme.Fonts.meta)
+                    Text(Language.find(store.document.language).displayName).font(Theme.Fonts.meta)
                     Text(L10n.format("lists.progress", Int64(savedCount), Int64(store.words.count))).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
                     ProgressView(value: Double(savedCount), total: Double(max(store.words.count, 1))).tint(Theme.accent)
                         .accessibilityLabel("Words in your Cards")
                         .accessibilityValue(L10n.format("lists.progress", Int64(savedCount), Int64(store.words.count)))
                 }
-                if let document = store.document { WordListSourceView(source: document.source) }
+                WordListSourceView(source: store.document.source)
                 DictionarySearchField(text: $search, prompt: "Search this list")
                     .padding(.vertical, 8)
                 let filterLayout = dynamicTypeSize.isAccessibilitySize
@@ -219,14 +196,7 @@ struct IELTSWordListView: View {
                 }.font(Theme.Fonts.body).frame(minHeight: 44)
                 if let notice { Text(notice).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary).accessibilityAddTraits(.updatesFrequently) }
             }.wordListRows()
-            if store.loading {
-                Section { ProgressView("Loading…") }.wordListRows()
-            } else if let error = store.error {
-                Section {
-                    Text(error)
-                    Button("Try again") { Task { await store.load(); refresh() } }
-                }.wordListRows()
-            } else if shown.isEmpty {
+            if shown.isEmpty {
                 Section {
                     Text("No words match your search.").foregroundStyle(Theme.textSecondary)
                     if !search.isEmpty || !level.isEmpty || !topic.isEmpty { Button("Clear filters") { search = ""; level = ""; topic = "" } }
@@ -249,7 +219,7 @@ struct IELTSWordListView: View {
         .environment(\.defaultMinListRowHeight, 48).listStyle(.plain).listSectionSpacing(24).scrollContentBackground(.hidden).background(Theme.background)
         .frame(maxWidth: 720).frame(maxWidth: .infinity).background(Theme.background)
         .foregroundStyle(Theme.ink).font(Theme.Fonts.body).tint(Theme.accent)
-        .navigationTitle(store.document?.title ?? "IELTS").navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(store.document.title).navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Button(newWords.isEmpty ? L10n.string("No new words") : L10n.format("lists.batch", Int64(newWords.count))) {
                 pending = newWords; confirmBulk = true
@@ -257,8 +227,7 @@ struct IELTSWordListView: View {
                 .frame(maxWidth: 672).padding(.horizontal, 24).padding(.vertical, 16)
                 .frame(maxWidth: .infinity).background(Theme.background)
         }
-        .task { await store.load(); refresh() }
-        .onChange(of: store.words.count) { _, _ in refresh() }
+        .onAppear { refresh() }
         .onChange(of: search) { _, _ in refresh() }
         .onChange(of: level) { _, _ in refresh() }
         .onChange(of: topic) { _, _ in refresh() }

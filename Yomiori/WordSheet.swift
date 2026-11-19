@@ -20,7 +20,13 @@ struct WordSheet: View {
 
     var isSaved: Bool { saved.contains { $0.term == target.word && $0.sourceID == target.materialID && $0.kind != "highlight" } }
     private var canMine: Bool { target.kind == "word" }
-    private var mined: Bool { cards.contains { $0.word == target.word && $0.sentence == target.sentence } }
+    @Query private var minedCards: [Card]
+    private var mined: Bool { !minedCards.isEmpty }
+
+    init(target: ReaderView.WordTarget) {
+        self.target = target
+        _minedCards = Query(filter: CardMining.predicate(word: target.word, sentence: target.sentence, source: target.materialID))
+    }
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -91,7 +97,11 @@ struct WordSheet: View {
             .font(Theme.Fonts.body).foregroundStyle(Theme.ink)
             .background(Theme.background)
             .task { load(); await prepareClip() }
-            .onDisappear { lookupTask?.cancel(); miningTask?.cancel() }
+            .onDisappear {
+                lookupTask?.cancel(); miningTask?.cancel()
+                if let clipURLPreview { try? FileManager.default.removeItem(at: clipURLPreview) }
+                clipURLPreview = nil
+            }
             .alert("Couldn't save", isPresented: Binding(get: { operationError != nil }, set: { if !$0 { operationError = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: { Text(operationError ?? "") }
@@ -148,8 +158,11 @@ struct WordSheet: View {
     private func prepareClip() async {
         guard let f = target.mediaFile, canMine, target.time.isFinite, target.end.isFinite,
               target.time >= 0, target.end >= target.time, target.end <= Subtitles.maximumTime else { return }
-        let dest = FileManager.default.temporaryDirectory.appending(path: "clip-preview-\(UUID().uuidString).m4a")
-        if await Clip.export(media: Files.url(f), start: target.time, end: target.end, to: dest) { clipURLPreview = dest }
+        guard (try? FileManager.default.createDirectory(at: Files.temporaryDirectory, withIntermediateDirectories: true)) != nil else { return }
+        let dest = Files.temporaryDirectory.appending(path: "clip-preview-\(UUID().uuidString).m4a")
+        if await Clip.export(media: Files.url(f), start: target.time, end: target.end, to: dest), !Task.isCancelled {
+            clipURLPreview = dest
+        } else { try? FileManager.default.removeItem(at: dest) }
     }
     private func load() {
         lookupTask?.cancel(); failed = false

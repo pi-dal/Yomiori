@@ -1,8 +1,8 @@
 import SwiftUI
 import SwiftData
 
-/// Today's anchors and long-run progress, all derived from real activity.
-/// Nothing here is a score: missed days never take progress away, and every measure only grows.
+/// Today's checklist and a few long-run counts, all derived from real activity.
+/// Vocabulary reflects the current schedule. Immersion days come from dated logs.
 @MainActor
 struct LearningJourneySnapshot {
     static let anchorCount = 4
@@ -27,27 +27,13 @@ struct LearningJourneySnapshot {
     var expressionDone: Bool { coachMessages > 0 }
     var todayStepsDone: Int { [reviewDone, immersionDone, discoveryDone, expressionDone].filter { $0 }.count }
 
-    var phase: JourneyPhase {
-        if activeDays < 7 { return .foundation }
-        if totalImmersion < 10 * 3600 || wordsStuck < 50 { return .understanding }
-        if totalCoachMessages < 20 { return .expression }
-        return .expansion
-    }
-
-    var tracks: [GrowthTrack] {
-        [GrowthTrack(kind: .wordsStuck, value: wordsStuck),
-         GrowthTrack(kind: .hours, value: Int(totalImmersion / 3600)),
-         GrowthTrack(kind: .activeDays, value: activeDays),
-         GrowthTrack(kind: .expressions, value: totalCoachMessages)]
-    }
-
     static func make(cards: [Card], logs: [ImmersionLog], entries: [DictEntry], messages: [ChatMsg], defaults: UserDefaults, now: Date = Date(), calendar: Calendar = .current) -> LearningJourneySnapshot {
         let plan = DailyStudy.plan(cards, defaults: defaults, now: now)
         let today = { (date: Date) in calendar.isDate(date, inSameDayAs: now) }
         let dayStart = calendar.startOfDay(for: now)
         let seconds = { (log: ImmersionLog) in max(0, min(Subtitles.maximumTime, log.seconds)) }
         let todayImmersion = logs.filter { today($0.day) }.reduce(0) { $0 + seconds($1) }
-        let defaultGoal = defaults.object(forKey: "dailyGoal") == nil ? 60 : defaults.integer(forKey: "dailyGoal")
+        let defaultGoal = defaults.object(forKey: "dailyGoal") == nil ? 15 : defaults.integer(forKey: "dailyGoal")
         let goal = max(15, defaultGoal) * 60
         let todayReviewed = cards.filter { $0.lastCompletedAt.map(today) ?? false }.count
         let words = entries.filter { $0.kind == "word" }
@@ -57,10 +43,7 @@ struct LearningJourneySnapshot {
             .filter { !$0.isEmpty }.count
         let wordsStuck = Set(cards.filter { StudyLexicon.stage($0) == .known }.map { $0.languageCode + ":" + QuickDictionary.normalized($0.word) }).count
         let userMessages = messages.filter { $0.role == "user" }
-        // A day counts when the learner did something real: listened or read, reviewed, saved a word or wrote to Coach.
-        let activity = Set(logs.filter { seconds($0) > 0 }.map(\.day) + cards.compactMap(\.lastCompletedAt)
-            + words.map(\.createdAt) + userMessages.map(\.createdAt)).map { calendar.startOfDay(for: $0) }
-        let days = Set(activity).filter { $0 <= dayStart }
+        let days = Set(logs.filter { seconds($0) > 0 }.map { calendar.startOfDay(for: $0.day) }).filter { $0 <= dayStart }
         let weekStart = calendar.date(byAdding: .day, value: -6, to: dayStart) ?? dayStart
         return LearningJourneySnapshot(plan: plan, todayImmersion: todayImmersion, immersionGoal: Double(goal),
                                        todayReviewed: todayReviewed, todaySaved: todaySaved, totalImmersion: totalImmersion,
@@ -68,55 +51,6 @@ struct LearningJourneySnapshot {
                                        activeDaysThisWeek: days.filter { $0 >= weekStart }.count,
                                        coachMessages: userMessages.filter { today($0.createdAt) }.count,
                                        totalCoachMessages: userMessages.count)
-    }
-}
-
-enum JourneyPhase: CaseIterable, Identifiable {
-    case foundation, understanding, expression, expansion
-    var id: Self { self }
-    var titleKey: LocalizedStringKey {
-        switch self {
-        case .foundation: "journey.phase.foundation"
-        case .understanding: "journey.phase.understanding"
-        case .expression: "journey.phase.expression"
-        case .expansion: "journey.phase.expansion"
-        }
-    }
-    var detailKey: LocalizedStringKey {
-        switch self {
-        case .foundation: "journey.phase.foundationDetail"
-        case .understanding: "journey.phase.understandingDetail"
-        case .expression: "journey.phase.expressionDetail"
-        case .expansion: "journey.phase.expansionDetail"
-        }
-    }
-    /// What moves the learner on from this phase, measured from their own activity.
-    @MainActor func progress(_ snapshot: LearningJourneySnapshot) -> String? {
-        switch self {
-        case .foundation: L10n.format("journey.phase.foundationProgress", Int64(snapshot.activeDays))
-        case .understanding: L10n.format("journey.phase.understandingProgress", Immersion.format(snapshot.totalImmersion), Int64(snapshot.wordsStuck))
-        case .expression: L10n.format("journey.phase.expressionProgress", Int64(snapshot.totalCoachMessages))
-        case .expansion: nil
-        }
-    }
-}
-
-extension GrowthTrack.Kind {
-    var titleKey: LocalizedStringKey {
-        switch self {
-        case .wordsStuck: "journey.track.words"
-        case .hours: "journey.track.hours"
-        case .activeDays: "journey.track.days"
-        case .expressions: "journey.track.expressions"
-        }
-    }
-    var symbol: String {
-        switch self {
-        case .wordsStuck: "leaf"
-        case .hours: "headphones"
-        case .activeDays: "calendar"
-        case .expressions: "bubble.left"
-        }
     }
 }
 
@@ -145,62 +79,40 @@ private struct JourneyRoutineRow: View {
     }
 }
 
-/// A milestone track: what has been reached, and how far it is to the next one.
-private struct GrowthTrackRow: View {
-    let track: GrowthTrack
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: track.reached == nil ? "seal" : "seal.fill")
-                .foregroundStyle(track.reached == nil ? Theme.textSecondary : Theme.accent).frame(width: 24)
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline) {
-                    Label(track.kind.titleKey, systemImage: track.kind.symbol).labelStyle(.titleOnly).font(.body.weight(.semibold))
-                    Spacer(minLength: 8)
-                    Text(verbatim: "\(track.value)").font(.body.weight(.semibold).monospacedDigit())
-                }
-                ProgressView(value: track.fraction).tint(Theme.accent).accessibilityHidden(true)
-                Text(track.reached.map { L10n.format("journey.track.reachedNext", Int64($0), Int64(track.next)) }
-                     ?? L10n.format("journey.track.next", Int64(track.next)))
-                    .font(.subheadline).foregroundStyle(Theme.textSecondary)
-            }
-        }
-        .padding(.vertical, 12)
-        .accessibilityElement(children: .combine)
-    }
-}
-
 /// The Read home entry: today's state and one action that starts the right thing directly.
+/// Absent until there is something to study, so a new library opens on its sources instead of "caught up".
 struct DailyStudySection: View {
     @Query private var cards: [Card]
-    @Query private var logs: [ImmersionLog]
-    @Query private var entries: [DictEntry]
-    @Query private var messages: [ChatMsg]
     @Environment(\.studyDefaults) private var defaults
     @Environment(AppState.self) private var app
     var body: some View {
+        if !cards.isEmpty { section }
+    }
+    private var section: some View {
         TimelineView(.periodic(from: .now, by: 30)) { time in
-            let snapshot = LearningJourneySnapshot.make(cards: cards, logs: logs, entries: entries, messages: messages, defaults: defaults, now: time.date)
-            let plan = snapshot.plan
+            let plan = DailyStudy.plan(cards, defaults: defaults, now: time.date)
             VStack(alignment: .leading, spacing: 12) {
-                Text("study.today").literary(.title2, bold: true).accessibilityAddTraits(.isHeader)
-                Text(L10n.format("journey.todaySummary", Int64(snapshot.todayStepsDone), Int64(LearningJourneySnapshot.anchorCount)))
-                    .font(.body).foregroundStyle(Theme.textSecondary)
-                Text(L10n.format("journey.todayStats", Immersion.format(snapshot.todayImmersion), Int64(snapshot.todayReviewed)))
-                    .font(.subheadline.monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                // The heading is the way into Today: one entry, not a second row beside the action.
+                Button { app.studyDestination = .today } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("study.today").literary(.title2, bold: true)
+                        Image(systemName: "chevron.right").font(.subheadline.weight(.semibold)).foregroundStyle(Theme.textSecondary)
+                    }
+                    .frame(minHeight: 44, alignment: .leading).contentShape(Rectangle())
+                }
+                .buttonStyle(PressFeedbackStyle()).foregroundStyle(Theme.ink)
+                .accessibilityAddTraits(.isHeader).accessibilityIdentifier("journey.open")
                 Text(plan.remaining == 0 ? "study.goalDone" : (plan.queue.isEmpty ? "study.caughtUp" : "study.ready"))
                     .font(.body).foregroundStyle(Theme.textSecondary)
+                // The one acknowledgement on return from a session.
                 if plan.completed > 0 {
                     Text(L10n.format("study.completedCount", Int64(plan.completed)))
                         .font(.subheadline.monospacedDigit()).foregroundStyle(Theme.textSecondary)
                 }
                 // With cards waiting, one tap starts review; otherwise it opens Today and its next step.
-                Button { if plan.queue.isEmpty { app.showStudy = true } else { app.showReview = true } } label: {
+                Button { app.studyDestination = plan.destination } label: {
                     Label(plan.queue.isEmpty ? "study.viewToday" : "study.start", systemImage: plan.queue.isEmpty ? "checkmark" : "play.fill")
                 }.buttonStyle(CompactActionStyle()).accessibilityIdentifier("study.start")
-                Button { app.showStudy = true } label: {
-                    ActionRowLabel(title: "journey.open", symbol: "map",
-                                   detail: L10n.format("journey.openDetail", Int64(snapshot.wordsStuck), Int64(snapshot.activeDaysThisWeek)))
-                }.buttonStyle(TextActionStyle()).accessibilityIdentifier("journey.open")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 12)
@@ -252,28 +164,30 @@ struct DailyStudyView: View {
                         else { primary(snapshot) }
                     }
                     anchors(snapshot)
-                    if !cards.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
+                    // Secondary paths stay one quiet row each; long-run progress lives one level down.
+                    VStack(alignment: .leading, spacing: 0) {
+                        if !cards.isEmpty {
                             Button { freePracticing = true } label: {
-                                Label("study.freePractice", systemImage: "infinity")
-                            }.buttonStyle(PaperActionStyle(expanded: true)).accessibilityIdentifier("study.freePractice")
-                            Text("study.freePracticeDetail").font(.footnote).foregroundStyle(Theme.textSecondary)
+                                ActionRowLabel(title: "study.freePractice", symbol: "infinity")
+                            }.buttonStyle(TextActionStyle()).accessibilityIdentifier("study.freePractice")
                         }
+                        NavigationLink { JourneyProgressView(snapshot: snapshot) } label: {
+                            ActionRowLabel(title: "journey.progress", symbol: "chart.line.uptrend.xyaxis")
+                        }.buttonStyle(TextActionStyle()).accessibilityIdentifier("journey.progress")
                     }
-                    progress(snapshot)
-                    milestones(snapshot)
-                    roadmap(snapshot)
-                    VStack(alignment: .leading, spacing: 8) {
-                        if !reminderEnabled { reminderAction(plan) }
-                        Button { settings = true } label: {
-                            ActionRowLabel(title: "study.settings", symbol: "slider.horizontal.3")
-                        }.buttonStyle(TextActionStyle()).accessibilityIdentifier("study.configure")
-                    }
+                    // The reminder opt-in belongs to the finished day, not to the start of it.
+                    if !reminderEnabled && !preparing && plan.queue.isEmpty { reminderAction(plan) }
                 }.padding(24).frame(maxWidth: 640, alignment: .leading).frame(maxWidth: .infinity)
             }
             .background(Theme.background).foregroundStyle(Theme.ink)
             .navigationTitle("study.today").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { settings = true } label: { Image(systemName: "slider.horizontal.3") }
+                        .accessibilityLabel("study.settings").accessibilityIdentifier("study.configure")
+                }.sharedBackgroundVisibility(.hidden)
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
             .task { await prepare() }
             .onChange(of: phase) { _, phase in if phase == .active { Task { await prepare() } } }
             .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { date in now = date }
@@ -287,18 +201,15 @@ struct DailyStudyView: View {
 
     @ViewBuilder private func primary(_ snapshot: LearningJourneySnapshot) -> some View {
         let plan = snapshot.plan
-        Text(L10n.format("study.completedCount", Int64(plan.completed)))
-            .font(.body).foregroundStyle(Theme.textSecondary)
-        if language == "en", let minimumLevel = plan.minimumLevel {
-            Text(L10n.format("study.minimumLevelSummary", WordListMetadata.level(minimumLevel)))
-                .font(.body).foregroundStyle(Theme.textSecondary)
-        }
+        // One status line: what is waiting, or what was done.
         if !plan.queue.isEmpty {
             Text(L10n.format("study.queueCount", Int64(plan.queue.filter { $0.reps > 0 }.count), Int64(plan.queue.filter { $0.reps == 0 }.count)))
-                .font(.body)
+                .font(.body).foregroundStyle(Theme.textSecondary)
             Button { reviewing = true } label: { Label("study.reviewNow", systemImage: "play.fill") }
                 .buttonStyle(InkButtonStyle()).accessibilityIdentifier("study.review")
         } else {
+            Text(L10n.format("study.completedCount", Int64(plan.completed)))
+                .font(.body).foregroundStyle(Theme.textSecondary)
             if let next = plan.nextLearningDate {
                 HStack(spacing: 4) {
                     Text("study.retryLater")
@@ -340,51 +251,81 @@ struct DailyStudyView: View {
         }
     }
 
+    private func reminderAction(_ plan: StudyPlan) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button {
+                requestingReminder = true
+                Task {
+                    await reminders.enable(defaults: defaults)
+                    reminderEnabled = defaults.bool(forKey: "study.reminders")
+                    await reminders.refresh(defaults: defaults, completed: plan.suppressesTodayReminder)
+                    requestingReminder = false
+                }
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    if requestingReminder { ProgressView().tint(Theme.accent) }
+                    else { Image(systemName: "bell").accessibilityHidden(true) }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("study.enableReminder").font(.subheadline.weight(.semibold))
+                        Text("study.defaultReminder").font(.footnote).foregroundStyle(Theme.textSecondary)
+                    }
+                }
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            }.buttonStyle(TextActionStyle()).disabled(requestingReminder)
+            if let failure = reminders.failure { Text(failure).font(.footnote).foregroundStyle(Theme.errorText) }
+        }
+    }
+
+    // MARK: Actions
+
+    /// Back to the learner's own material: the last opened subtitle or PDF.
+    private func openReading() {
+        if let material = materials.first(where: { $0.id.uuidString == lastMaterial }) ?? materials.first {
+            let line = material.lines.indices.contains(material.lastLine) ? material.lines[material.lastLine].start : 0
+            app.open(.material(id: material.id.uuidString, position: line))
+        } else if let document = documents.first(where: { $0.id.uuidString == lastDocument }) ?? documents.first {
+            app.open(.document(id: document.id.uuidString, page: document.lastPage))
+        } else { app.tab = .read }
+        dismiss()
+    }
+
+    private func prepare() async {
+        preparing = true; failure = nil
+        defer { preparing = false }
+        do {
+            let plan = try await DailyStudy.preparedPlan(context: context, library: library, defaults: defaults)
+            failure = library.error
+            now = Date()
+            await StudyReminders.shared.refresh(defaults: defaults, completed: plan.suppressesTodayReminder)
+        } catch { if !(error is CancellationError) { failure = L10n.string("study.prepareError") } }
+    }
+}
+
+/// Long-run progress, one level below Today: a few honest counts and the immersion log. No tiers or phases.
+struct JourneyProgressView: View {
+    let snapshot: LearningJourneySnapshot
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 32) {
+                progress(snapshot)
+            }.padding(24).frame(maxWidth: 640, alignment: .leading).frame(maxWidth: .infinity)
+        }
+        .background(Theme.background).foregroundStyle(Theme.ink)
+        .navigationTitle("journey.progress").navigationBarTitleDisplayMode(.inline)
+    }
+
     private func progress(_ snapshot: LearningJourneySnapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("journey.progress").literary(.title2, bold: true).accessibilityAddTraits(.isHeader).padding(.bottom, 4)
             statRow("journey.wordsStuck", L10n.format("journey.wordsCount", Int64(snapshot.wordsStuck)))
             statRow("journey.weekActive", L10n.format("journey.weekValue", Int64(snapshot.activeDaysThisWeek)))
             statRow("journey.totalImmersion", Immersion.format(snapshot.totalImmersion))
             statRow("journey.wordsCollected", L10n.format("journey.wordsCount", Int64(snapshot.totalWords)))
             Text("journey.stuckHelp").font(.footnote).foregroundStyle(Theme.textSecondary).padding(.top, 8)
-        }
-    }
-
-    private func milestones(_ snapshot: LearningJourneySnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("journey.milestones").literary(.title2, bold: true).accessibilityAddTraits(.isHeader)
-            ForEach(snapshot.tracks, id: \.kind) { GrowthTrackRow(track: $0) }
-        }
-    }
-
-    private func roadmap(_ snapshot: LearningJourneySnapshot) -> some View {
-        let current = snapshot.phase
-        let currentIndex = JourneyPhase.allCases.firstIndex(of: current) ?? 0
-        return VStack(alignment: .leading, spacing: 0) {
-            Text("journey.roadmap").literary(.title2, bold: true).accessibilityAddTraits(.isHeader)
-            ForEach(JourneyPhase.allCases) { phase in
-                let index = JourneyPhase.allCases.firstIndex(of: phase) ?? 0
-                let done = index < currentIndex
-                HStack(alignment: .top, spacing: 14) {
-                    Image(systemName: done ? "checkmark.circle.fill" : phase == current ? "circle.dotted" : "circle")
-                        .foregroundStyle(done ? Theme.accent : phase == current ? Theme.vermilion : Theme.textSecondary)
-                        .font(.title3).frame(width: 24)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(phase.titleKey).font(.body.weight(.semibold))
-                        Text(phase.detailKey).font(.subheadline).foregroundStyle(Theme.textSecondary)
-                        if phase == current {
-                            Text("journey.currentFocus").font(.caption.weight(.semibold)).foregroundStyle(Theme.vermilion)
-                            if let progress = phase.progress(snapshot) {
-                                Text(progress).font(.subheadline.monospacedDigit()).foregroundStyle(Theme.ink)
-                            }
-                        }
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(.vertical, 12)
-                .accessibilityElement(children: .combine)
-            }
+            NavigationLink { ImmersionView() } label: {
+                ActionRowLabel(title: "nav.immersion", symbol: "headphones")
+            }.buttonStyle(TextActionStyle()).padding(.top, 8)
         }
     }
 
@@ -397,55 +338,6 @@ struct DailyStudyView: View {
         .frame(minHeight: 44)
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 0.5) }
         .accessibilityElement(children: .combine)
-    }
-
-    private func reminderAction(_ plan: StudyPlan) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button {
-                requestingReminder = true
-                Task {
-                    await reminders.enable(defaults: defaults)
-                    reminderEnabled = defaults.bool(forKey: "study.reminders")
-                    await reminders.refresh(defaults: defaults, completed: plan.remaining == 0 || (plan.completed > 0 && plan.queue.isEmpty && plan.nextLearningDate == nil))
-                    requestingReminder = false
-                }
-            } label: {
-                HStack(spacing: 10) {
-                    if requestingReminder { ProgressView().tint(Theme.accent) }
-                    else { Image(systemName: "bell").accessibilityHidden(true) }
-                    Text("study.enableReminder")
-                }.frame(maxWidth: .infinity)
-            }.buttonStyle(PaperActionStyle(expanded: true)).disabled(requestingReminder)
-            Text("study.defaultReminder").font(.footnote).foregroundStyle(Theme.textSecondary)
-            if let failure = reminders.failure { Text(failure).font(.footnote).foregroundStyle(Theme.errorText) }
-        }
-    }
-
-    // MARK: Actions
-
-    /// Back to the learner's own material: the last opened subtitle or PDF.
-    private func openReading() {
-        if let material = materials.first(where: { $0.id.uuidString == lastMaterial }) ?? materials.first {
-            let line = material.lines.indices.contains(material.lastLine) ? material.lines[material.lastLine].start : 0
-            app.jumpMaterial = (material.id.uuidString, line); app.tab = .read
-        } else if let document = documents.first(where: { $0.id.uuidString == lastDocument }) ?? documents.first {
-            app.jumpDoc = (document.id.uuidString, document.lastPage); app.tab = .documents
-        } else { app.tab = .read }
-        dismiss()
-    }
-
-    private func prepare() async {
-        preparing = true; failure = nil
-        defer { preparing = false }
-        let generation = Operations.shared.generation
-        await library.load()
-        do {
-            try Operations.shared.checkpoint(generation)
-            try DailyStudy.prepare(context: context, documents: library.documents, defaults: defaults)
-            now = Date()
-            let plan = DailyStudy.plan(try context.fetch(FetchDescriptor<Card>()), defaults: defaults)
-            await StudyReminders.shared.refresh(defaults: defaults, completed: plan.remaining == 0 || (plan.completed > 0 && plan.queue.isEmpty && plan.nextLearningDate == nil))
-        } catch { if !(error is CancellationError) { failure = L10n.string("study.prepareError") } }
     }
 }
 
@@ -462,12 +354,6 @@ struct WordBookDetailView: View {
     private var dueCount: Int { bookCards.filter { $0.reps > 0 && $0.due <= now }.count }
     private var newCount: Int { bookCards.filter { $0.reps == 0 }.count }
     private var mistakeCount: Int { bookCards.filter { $0.lapses > 0 }.count }
-    private var todayIntroduced: Int {
-        bookCards.filter { card in
-            guard let date = card.firstReviewedAt else { return false }
-            return Calendar.current.isDate(date, inSameDayAs: now)
-        }.count
-    }
 
     var body: some View {
         ScrollView {
@@ -490,11 +376,8 @@ struct WordBookDetailView: View {
     private var progressHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(document.title).literary(.title1, bold: true)
-                    Text(Language.find(document.language).displayName)
-                        .font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
-                }
+                Text(Language.find(document.language).displayName)
+                    .font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
                 Spacer()
                 Text(L10n.format("wordBook.percent", Int64(progressPercent)))
                     .font(Theme.Fonts.body.weight(.semibold)).foregroundStyle(Theme.accent)
@@ -512,14 +395,22 @@ struct WordBookDetailView: View {
     }
 
     private var metrics: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            WordBookMetric(title: "wordBook.total", value: document.entries.count, symbol: "books.vertical")
-            WordBookMetric(title: "wordBook.learned", value: learnedCount, symbol: "checkmark.circle")
-            WordBookMetric(title: "wordBook.due", value: dueCount, symbol: "clock")
-            WordBookMetric(title: "wordBook.new", value: newCount, symbol: "sparkles")
-            WordBookMetric(title: "wordBook.mistakes", value: mistakeCount, symbol: "arrow.counterclockwise")
-            WordBookMetric(title: "wordBook.todayGoal", value: DailyStudy.newLimit(defaults), detail: L10n.format("wordBook.todayIntroduced", Int64(todayIntroduced)), symbol: "target")
+        VStack(spacing: 0) {
+            metricRow("wordBook.due", dueCount)
+            metricRow("wordBook.new", newCount)
+            metricRow("wordBook.mistakes", mistakeCount)
         }
+    }
+
+    private func metricRow(_ title: LocalizedStringKey, _ value: Int) -> some View {
+        HStack {
+            Text(title).font(.subheadline).foregroundStyle(Theme.textSecondary)
+            Spacer(minLength: 12)
+            Text(verbatim: "\(value)").font(.body.weight(.semibold).monospacedDigit())
+        }
+        .frame(minHeight: 44)
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.separator).frame(height: 0.5) }
+        .accessibilityElement(children: .combine)
     }
 
     private var actions: some View {
@@ -531,27 +422,6 @@ struct WordBookDetailView: View {
                 Label("review.freePractice", systemImage: "infinity")
             }.buttonStyle(PaperActionStyle(expanded: true))
         }
-    }
-}
-
-private struct WordBookMetric: View {
-    let title: LocalizedStringKey
-    let value: Int
-    var detail: String? = nil
-    let symbol: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(title, systemImage: symbol)
-                .font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary)
-            Text(verbatim: "\(value)")
-                .font(Theme.Fonts.focus.weight(.semibold))
-            if let detail { Text(verbatim: detail).font(Theme.Fonts.meta).foregroundStyle(Theme.textSecondary) }
-        }
-        .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-        .padding(16)
-        .background(Theme.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -686,6 +556,6 @@ struct StudySettingsView: View {
 
     private func reschedule() async {
         let plan = DailyStudy.plan(cards, defaults: defaults)
-        await reminders.refresh(defaults: defaults, completed: plan.remaining == 0 || (plan.completed > 0 && plan.queue.isEmpty && plan.nextLearningDate == nil))
+        await reminders.refresh(defaults: defaults, completed: plan.suppressesTodayReminder)
     }
 }

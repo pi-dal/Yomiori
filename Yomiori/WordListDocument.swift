@@ -396,8 +396,17 @@ final class WordListLibrary {
         self.builtInURL = builtInURL
     }
 
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
+
     func load() async {
-        guard !loaded, !loading else { return }
+        if let loadTask { await loadTask.value; return }
+        guard !loaded else { return }
+        let task = Task { await self.loadCatalogue(); self.loadTask = nil }
+        loadTask = task
+        await task.value
+    }
+
+    private func loadCatalogue() async {
         loading = true
         error = nil
         defer { loading = false }

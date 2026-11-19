@@ -33,7 +33,7 @@ struct ImmersionView: View {
     @Query private var entries: [DictEntry]
     @Query private var cards: [Card]
     @Environment(\.modelContext) private var ctx
-    @AppStorage("dailyGoal") private var goal = 60
+    @AppStorage("dailyGoal") private var goal = 15
     @State private var adding = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 

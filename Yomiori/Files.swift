@@ -6,6 +6,14 @@ enum Files {
     }
     static var temporaryDirectory: URL { FileManager.default.temporaryDirectory.appending(path: "Yomiori", directoryHint: .isDirectory) }
     static func url(_ name: String) -> URL { dir.appending(path: name) }
+    /// Commit the model deletion first so a failed save leaves the original file readable.
+    static func removeImport(_ name: String?, deletingRecords: () throws -> Void) throws {
+        try deletingRecords()
+        if let name, FileManager.default.fileExists(atPath: url(name).path) {
+            try FileManager.default.removeItem(at: url(name))
+        }
+    }
+
     /// Copies a picked file into the app's storage and returns its stored name.
     static func importFile(_ src: URL) throws -> String {
         let ok = src.startAccessingSecurityScopedResource()
