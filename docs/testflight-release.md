@@ -2,7 +2,20 @@
 
 2026-10-29：用户已授权全局改名并发布 TestFlight，发布操作使用 `asc`。
 
-## 最新发布：1.1.2 (11)，Ink Moments 学习反馈
+## 最新发布：1.1.3 (12)，学习入口精简与 PDF 标记一致性
+
+2026-11-19：用户授权「现在 commit and push 然后发个新版」。源码与版本号已在上传前提交并推送，提交 `8bed883`。
+
+- 版本 **1.1.3 (12)**：精简 Today、词典、Coach 和设置的重复入口；空白阅读首页可选择学习语言，英语从内置词书准备新词。进度与沉浸记录放在下一级，学习阶段在 Coach 菜单，清空对话增加确认。
+- 修复 PDF 高亮创建／删除的文件与词条一致性、并发词书加载等待、制卡判重条件和文件清理，减少重复提醒排程。保留原有 SwiftData 持久化字段，不重置数据。
+- 发布前完整验收：**53 项单元／集成测试及 17 项 UI 测试通过，1 项真机音频测试跳过，0 项失败**。详见[本次验收](acceptance/testflight-12.md)。
+- Release arm64 归档和 IPA 导出、严格签名、权限及隐私清单校验通过；100 个源码／配置文件与构建前快照一致；临时签名钥匙串已清理，原搜索列表恢复。
+- 产物及 Apple 回执：`/tmp/yomiori-testflight-12/`。IPA SHA-256：`24630008e6b118296c5f9c4f4f93523e55be6072ab068f1e218e7b69a2f096ad`。
+- Build／Upload／Beta Review ID：`7d2317cf-3cc2-41ba-a9bc-3d23501f3778`。Apple 回读 `processingState=VALID`、内部 `IN_BETA_TESTING`、外部 `WAITING_FOR_BETA_REVIEW`、`betaReviewState=WAITING_FOR_REVIEW`、`autoNotifyEnabled=true`、`usesNonExemptEncryption=false`。
+- 外部 Beta 审核于 2026-11-19 05:57:36 PST 成功提交；现有 Internal Testers 与 Yomiori Email Testers 的完整访问关系已回读，中英文 What to Test 已确认。严格 TestFlight 校验零错误／零警告。未提交正式 App Store 版本。
+- 监控：`asc builds build-beta-detail view --build-id 7d2317cf-3cc2-41ba-a9bc-3d23501f3778 --output table`。
+
+## 历史发布：1.1.2 (11)，Ink Moments 学习反馈
 
 2026-11-12：用户授权「commit and push，然后发个版」。先提交并推送 Ink Moments 改动，再使用 `asc-release-flow` 和 `asc-submission-health` 发布本构建。
 
